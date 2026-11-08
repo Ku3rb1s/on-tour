@@ -225,6 +225,7 @@
     "Alle Sterne der Tour von {a} löschen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "Slette alle stjernene i turneen til {a}? Stoppene blir låst igjen; prestasjonene dine blir værende.",
     "Alle Sterne der Haupt-Tour löschen, auch die der Bonus-Stationen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "Slette alle stjernene i hovedturneen, også bonusstoppene? Stoppene blir låst igjen; prestasjonene dine blir værende.",
     "Haupt-Tour": "Hovedturné",
+    "Dazu läuft": "Spilles til",
     "Station verlassen": "Forlat stoppet",
     "Station verlassen? Diese Runde wird nicht gewertet.": "Forlate stoppet? Denne runden teller ikke.",
     "Stationen": "Stopp",

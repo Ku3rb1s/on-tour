@@ -236,7 +236,7 @@ function encode(q) {
     case 'rec': return { k: 'rec', s: ref(q.s), o: q.o.map(ref) };
     case 'old': return { k: 'old', a: ref(q.a), b: ref(q.b) };
     case 'who': case 'feat': return { k: q.k, s: ref(q.s), o: q.o, ...(q.A ? { A: q.A } : {}) };
-    case 'fact': return { k: 'fact', s: ref(q.s), q: q.q, o: q.o };
+    case 'fact': return { k: 'fact', s: ref(q.s), q: q.q, o: q.o, ...(q.m || q.alb ? { m: 1 } : {}), ...(q.ha ? { ha: 1 } : {}) };   // ha: Interpret ausblenden (verrät die Antwort)   // m: es läuft der genannte Song
     case 'year': return { k: 'year', s: ref(q.s), o: q.o };
     case 'claim': {
       const c = q.c, o = { k: c.k, ok: c.ok };
@@ -448,11 +448,22 @@ async function buildArtist(name) {
     const classics = all.filter(x => !x.dz && x.n && x.ak === k && safe(x)).sort((a, b) => b.n - a.n).slice(0, 6);
     const fill = classics.sort((a, b) => (fillUse.get(a) || 0) - (fillUse.get(b) || 0) || b.n - a.n)[0]
       || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
-    const song = all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || fill;
+    // Nennt die Frage einen Song („…“), läuft genau der – vom Star oder, wenn er von jemand anderem ist (z. B. „I Gotta
+    // Feeling“), aus dem ganzen Pool. Aber nie, wenn Titel oder Interpret die Antwort verraten (dann ein Song des Stars).
+    // Verrät der Interpret die Antwort (Gast David Bowie bei „Under Pressure“), läuft der Song trotzdem – das Spiel blendet
+    // dann den Interpreten aus (ha). Verrät der Titel sie, läuft ein anderer Song.
+    const hit = list => words.some(w => w.length >= 3 && list.map(v => HM.words(v || '')).filter(v => v.length >= 3).some(v => w.includes(v) || v.includes(w)));
+    const artistLeak = x => hit([x.A, x.a0, ...(x.parts || []), ...realGuests(x.p)]);
+    const named = [...fq.q.de.matchAll(/„([^“]+)“/g)].map(m => HM.titleKey(m[1])).filter(Boolean);
+    const mentioned = named.map(tk => all.find(x => x.tk === tk && safe(x))
+      || D.tracks.filter(x => x.tk === tk && safe(x)).sort((a, b) => (b.n || 0) - (a.n || 0))[0]).find(Boolean);
+    const song = mentioned || all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || fill;
     if (song === fill && fill) fillUse.set(fill, (fillUse.get(fill) || 0) + 1);
     if (!song) { L.push(`  ⚠️ ${name}: kein Song für „${fq.q.de}“`); return null; }
-    if (song.tk !== HM.titleKey(fq.s)) L.push(`  ↪ ${name}: „${fq.s}“ nicht da – dazu läuft „${song.T}“`);
-    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y };
+    if (named.length && !mentioned) L.push(`  ♪ ${name}: „${fq.q.de}“ – genannter Song geht nicht, dazu läuft „${song.T}“`);
+    else if (!mentioned && song.tk !== HM.titleKey(fq.s)) L.push(`  ↪ ${name}: „${fq.s}“ nicht da – dazu läuft „${song.T}“`);
+    // m: der laufende Song ist der in der Frage genannte – sonst zeigt das Spiel „läuft im Hintergrund“
+    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y, ...(mentioned ? { m: 1 } : {}), ...(artistLeak(song) ? { ha: 1 } : {}) };
   };
   for (const q of (FACTS_SONG[name] || []).map(factQ).filter(Boolean)) {
     const d = st => q.y < st.y[0] ? st.y[0] - q.y : q.y > st.y[1] ? q.y - st.y[1] : 0;
@@ -467,6 +478,9 @@ async function buildArtist(name) {
   for (const s of onAlbum) {
     if (encore.filter(q => q.alb).length >= 3) break;
     if (usedAlb.has(s.era.t)) continue;
+    // Titelsong („Let It Be“ auf „Let It Be“) verrät die Antwort
+    const wa = HM.words(s.era.t), ws = HM.words(s.T);
+    if (wa.includes(ws) || ws.includes(wa)) continue;
     const near = albums.filter(a => a !== s.era).sort((a, b) => Math.abs(a.y - s.era.y) - Math.abs(b.y - s.era.y)).slice(0, 5);
     const wrong = shuffle(near, R).slice(0, 3).map(a => a.t);
     if (wrong.length < 3) continue;

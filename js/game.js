@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.2.6', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.2.7', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd11';
+const DATA_V = 'd12';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -323,11 +323,11 @@ const curQ = () => G?.qs[G.n];
 const mainSong = q => DATA.S[q.k === 'old' ? q.a : q.s];
 const yTxt = s => s.y ? ' · ' + s.y : '';   // ergänzte Deezer-Songs haben kein geprüftes Jahr
 
-function songCard(s, { hideA = false, hideT = false, blur = false, aTxt = null } = {}) {
+function songCard(s, { hideA = false, hideT = false, blur = false, aTxt = null, bg = false } = {}) {
   const img = cover(s, 250);
   return `<div class="song ${blur ? 'blur' : ''}" data-song="${s.i}" data-play="${s.i}">
     <div class="cv">${img ? `<img src="${img}" alt="" draggable="false">` : ''}<span class="eq"><i></i><i></i><i></i><i></i></span></div>
-    <div class="info"><div class="t">${hideT ? '<span class="qm">? ? ?</span>' : esc(s.T)}</div><div class="a">${aTxt ?? (hideA ? `<span class="qm">${tx('Wer ist das?')}</span>` : esc(s.A))}</div></div>
+    <div class="info">${bg ? `<div class="bg-lbl">${tx('Dazu läuft')}</div>` : ''}<div class="t">${hideT ? '<span class="qm">? ? ?</span>' : esc(s.T)}</div><div class="a">${aTxt ?? (hideA ? `<span class="qm">${tx('Wer ist das?')}</span>` : esc(s.A))}</div></div>
   </div>`;
 }
 function discHtml(s) {
@@ -359,7 +359,8 @@ function renderQ(quiet = false) {   // quiet: nur neu zeichnen (Sprachwechsel), 
     body.innerHTML = songCard(s, { aTxt: `${esc(G.t.artist.A)} &amp; <span class="qm">?</span>` });
     opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
   } else if (q.k === 'fact') {
-    body.innerHTML = songCard(s);
+    // m: es läuft der Song aus der Frage – sonst ist er nur Begleitmusik („Dazu läuft“); ha: Interpret verrät die Antwort
+    body.innerHTML = songCard(s, { bg: !q.m, ...(q.ha ? { aTxt: '' } : {}) });
     opts.innerHTML = q.opts.map((i, k) => optBtn(i, k, inLang(q.o[i]))).join('');
   } else if (q.k === 'year') {
     body.innerHTML = songCard(s);

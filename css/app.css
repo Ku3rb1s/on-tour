@@ -331,3 +331,6 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
 /* Tour zurücksetzen – unter der Karte, dezent */
 .tour-reset{display:flex;align-items:center;gap:8px;margin:14px auto 0;padding:9px 16px;border-radius:999px;font-size:.86rem;color:var(--muted)}
 .tour-reset .ic{width:16px;height:16px}
+/* Wissensfrage: Song ist nur Begleitmusik (nicht der aus der Frage) */
+.song .bg-lbl{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.song .a:empty{display:none}

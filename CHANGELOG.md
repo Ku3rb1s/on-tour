@@ -1,5 +1,11 @@
 # Neuerungen
 
+## 1.2.7 – 08.11.2026
+- Wissensfragen: Nennt die Frage einen Song, läuft jetzt genau dieser – auch wenn er von jemand anderem ist (z. B. „I Gotta Feeling“ bei David Guetta)
+- Behoben: Bei manchen Fragen verriet der Interpret auf der Karte die Antwort (z. B. Mark Ronson bei „Uptown Funk“) – dann wird er jetzt ausgeblendet
+- Läuft ein Song nur als Begleitmusik, steht „Dazu läuft“ darüber
+- Album-Quiz: keine Fragen mehr zu Titelsongs („Let It Be“ auf „Let It Be“)
+
 ## 1.2.6 – 08.11.2026
 - Wissensfragen: Darf der passende Song nicht laufen (weil er unter den Antworten steht), läuft jetzt ein Klassiker des Stars statt eines brandneuen Songs – und nicht zu jeder Frage derselbe
 - Tour zurücksetzen: gleicht vorher ab, damit Sterne, die ein anderes Gerät gerade geholt hat, nicht verloren gehen

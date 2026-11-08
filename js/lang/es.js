@@ -225,6 +225,7 @@
     "Alle Sterne der Tour von {a} löschen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "¿Borrar todas las estrellas de la gira de {a}? Las paradas volverán a estar bloqueadas; tus logros se mantienen.",
     "Alle Sterne der Haupt-Tour löschen, auch die der Bonus-Stationen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "¿Borrar todas las estrellas de la gira principal, también las de las paradas extra? Las paradas volverán a estar bloqueadas; tus logros se mantienen.",
     "Haupt-Tour": "Gira principal",
+    "Dazu läuft": "De fondo",
     "Station verlassen": "Salir de la parada",
     "Station verlassen? Diese Runde wird nicht gewertet.": "¿Salir de la parada? Esta ronda no contará.",
     "Stationen": "Paradas",

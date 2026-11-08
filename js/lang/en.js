@@ -225,6 +225,7 @@
     "Alle Sterne der Tour von {a} löschen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "Delete all stars of the {a} tour? The stops will be locked again; your achievements stay.",
     "Alle Sterne der Haupt-Tour löschen, auch die der Bonus-Stationen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "Delete all stars of the main tour, including the bonus stops? The stops will be locked again; your achievements stay.",
     "Haupt-Tour": "Main tour",
+    "Dazu läuft": "Playing along",
     "Station verlassen": "Leave stop",
     "Station verlassen? Diese Runde wird nicht gewertet.": "Leave this stop? This round won’t count.",
     "Stationen": "Stops",

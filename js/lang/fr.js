@@ -225,6 +225,7 @@
     "Alle Sterne der Tour von {a} löschen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "Effacer toutes les étoiles de la tournée de {a} ? Les étapes seront de nouveau verrouillées ; tes succès restent.",
     "Alle Sterne der Haupt-Tour löschen, auch die der Bonus-Stationen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.": "Effacer toutes les étoiles de la tournée principale, étapes bonus comprises ? Les étapes seront de nouveau verrouillées ; tes succès restent.",
     "Haupt-Tour": "Tournée principale",
+    "Dazu läuft": "En fond",
     "Station verlassen": "Quitter l’étape",
     "Station verlassen? Diese Runde wird nicht gewertet.": "Quitter l’étape ? Cette manche ne comptera pas.",
     "Stationen": "Étapes",
