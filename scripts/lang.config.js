@@ -1,7 +1,7 @@
 // On Tour – Besonderheiten für scripts/check-lang.js (das Skript selbst ist gemeinsam für alle Spiele)
 // add: Themen der Stationen (js/stations.js, angezeigt mit tx(st.theme)) und Texte, die nur zusammengesetzt vorkommen
 module.exports = {
-  ignore: ['On Tour', 'vs', 'Needle Drop', 'Older or Newer', 'Gold Record', 'claim', 'gold', 'Enter', 'M', 'rec', 'old'],
+  ignore: ['On Tour', 'vs', 'A–Z', 'Hall of Fame', 'Needle Drop', 'Older or Newer', 'Gold Record', 'claim', 'gold', 'Enter', 'M', 'rec', 'old'],
   tables: ['KIND', 'KIND_NAMES', 'GAME_LINKS'],
   add: ['Töne an', 'Töne aus', 'Vibration an', 'Vibration aus',
     'Rock ’n’ Roll', 'Beat', 'Motown & Soul', 'Rock & Flower Power', 'Pop', 'Disco', 'Punk & Rock', 'Neue Deutsche Welle', 'MTV', 'Synth-Pop',

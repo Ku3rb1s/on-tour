@@ -1,5 +1,10 @@
 # Neuerungen
 
+## 1.0.2 – 08.11.2026
+- Künstler-Touren: Stars sortierbar nach A–Z, meisten Stationen oder Fortschritt
+- Mehr Stationen: Die meisten Stars haben jetzt 6–8 Stationen statt 3–5 (bei Beatles, Queen, ABBA und Michael Jackson bleibt es bei 3, weil für weitere Songs keine sicheren Jahre vorliegen)
+- 14 neue Erfolge: Jahrzehnte, Wissensfragen, richtige Antworten, Superfan und mehr
+
 ## 1.0.1 – 08.11.2026
 - 88 neue Wissensfragen zu einzelnen Songs (Samples, Filmsongs, Rekorde, Entstehung) – jede gegen eine Quelle geprüft
 - In Künstler-Touren kommen jetzt bis zu zwei Wissensfragen pro Station dran

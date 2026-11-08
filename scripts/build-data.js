@@ -277,7 +277,7 @@ function buildTour(name, opt) {
 }
 
 /* ---------- 5. Künstler-Touren ----------
-   Man wählt einen Star, die Tour führt in 3–5 Stationen durch seine Karriere (Songs nach Jahr geordnet).
+   Man wählt einen Star, die Tour führt in 3–8 Stationen durch seine Karriere (Songs nach Jahr geordnet).
    Fragen nur zu ihm: Welcher Song? (4 eigene Titel), Was kam zuerst?, Mit wem singt er/sie hier?, Streams, Aus welchem Jahr?
    Hat ein Star wenige Songs im Pool, ergänzt die Deezer-Top-Liste (Zwischenspeicher scripts/.cache/deezer-artists.json).
    Diese Songs haben kein geprüftes Jahr – sie kommen nur bei „Welcher Song?“ und „Mit wem?“ vor, nie bei Jahres-Fragen.
@@ -288,7 +288,7 @@ const STARS = ['The Beatles', 'Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Lin
 // Wissensfragen je Star (von Hand, recherchiert und geprüft): zu den Stars (facts.js) und zu einzelnen Songs (facts-songs.js)
 const FACTS = {};
 for (const part of [require('./facts.js'), require('./facts-songs.js')]) for (const [a, l] of Object.entries(part)) (FACTS[a] ||= []).push(...l);
-const WANT_SONGS = 24, OFFLINE = process.argv.includes('--offline');
+const WANT_SONGS = 48, OFFLINE = process.argv.includes('--offline');
 const slug = a => String(a).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const DZ_CACHE = path.join(__dirname, '.cache', 'deezer-artists.json');
 const dzCache = readJson(DZ_CACHE, {});
@@ -311,19 +311,20 @@ async function dz(p) {
     dann kommen sie nur als falsche Antwort bei „Welcher Song?“ vor. */
 const NOT_ORIGINAL = /remaster|best of|greatest|hits|collection|anniversary|essential|anthology|gold|live|deluxe|edition|years|platinum/i;
 const EXTRA_PART = /live|remix|acoustic|instrumental|karaoke|demo|version|edit\b|sped up|slowed|mix\)/i;
+const NOT_A_SONG = /\b(intro|interlude|outro|skit|prelude|reprise)\b/i;   // Zwischenstücke von Alben – keine echten Songs
 async function songsOfStar(name) {
   const k = HM.key(name);
-  const list = D.tracks.filter(s => s.T && !XMAS.test(s.t) && (s.ak === k || s.parts.some(p => HM.key(p) === k)));
+  const list = D.tracks.filter(s => s.T && !XMAS.test(s.t) && !NOT_A_SONG.test(s.t) && (s.ak === k || s.parts.some(p => HM.key(p) === k)));
   const firstYear = Math.min(...list.filter(s => s.q >= 1).map(s => s.y));
   if (list.length < WANT_SONGS) {
     // gleichnamige Interpreten (es gibt mehrere „Queen“): der mit den meisten Fans
     const found = ((await dz('/search/artist?q=' + encodeURIComponent(name) + '&limit=10'))?.data || []).filter(a => HM.key(a.name) === k).sort((a, b) => b.nb_fan - a.nb_fan)[0];
-    const top = found ? (await dz(`/artist/${found.id}/top?limit=80`))?.data || [] : [];
+    const top = found ? (await dz(`/artist/${found.id}/top?limit=100`))?.data || [] : [];
     for (const t of top) {
       if (list.length >= WANT_SONGS) break;
       const extra = String(t.title).replace(/^[^([\-–—]*/, '');
       const T = HM.cleanTitle(t.title), tk = HM.titleKey(t.title);
-      if (!T || T.length > 40 || XMAS.test(t.title) || EXTRA_PART.test(extra) || t.artist.id !== found.id) continue;   // nur Songs, bei denen der Star Hauptinterpret ist
+      if (!T || T.length > 40 || XMAS.test(t.title) || EXTRA_PART.test(extra) || NOT_A_SONG.test(t.title) || t.artist.id !== found.id) continue;   // nur Songs, bei denen der Star Hauptinterpret ist
       if (list.some(s => s.tk === tk || HM.words(s.T).includes(HM.words(T)) || HM.words(T).includes(HM.words(s.T)))) continue;
       const alb = await dz('/album/' + t.album.id);
       let y = +String(alb?.release_date || '').slice(0, 4) || 0;
@@ -357,7 +358,7 @@ async function buildArtist(name) {
   const all = await songsOfStar(name);
   // Karriere nach Jahr in 3–5 gleich große Abschnitte – nur Songs mit sicherem Jahr (geprüft oder Original-Album bei Deezer)
   const dated = all.filter(s => s.q >= 1 || (s.dz && s.y)).sort((a, b) => a.y - b.y || a.f - b.f);
-  const nSt = Math.max(3, Math.min(5, Math.round(dated.length / 7)));
+  const nSt = Math.max(3, Math.min(8, Math.floor(dated.length / 6)));   // etwa 6 Songs je Station, 3–8 Stationen
   const chunks = Array.from({ length: nSt }, (_, i) => dated.slice(Math.round(i * dated.length / nSt), Math.round((i + 1) * dated.length / nSt)));
   const allGuests = uniqBy(all.flatMap(s => guestsOf(s, k)), HM.key);   // falsche Gäste: andere Gäste des Stars …
   const stations = chunks.map((chunk, ci) => {

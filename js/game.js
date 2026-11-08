@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.0.1', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.0.2', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd4';
+const DATA_V = 'd5';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -451,13 +451,33 @@ const ACH = [
   ['s72', '👑', 'Alle Sterne', 'Alle 72 Sterne der Tour'],
   ['fan', '🎤', 'Echter Fan', 'Eine Künstler-Tour ganz geschafft'],
   ['fans3', '💿', 'Plattensammlung', 'Drei Künstler-Touren ganz geschafft'],
+  ['fans5', '📀', 'Tourbus-Stammgast', 'Fünf Künstler-Touren ganz geschafft'],
+  ['fans10', '🏆', 'Hall of Fame', 'Zehn Künstler-Touren ganz geschafft'],
+  ['astar', '🌠', 'Superfan', 'Alle Sterne einer Künstler-Tour'],
+  ['d1970', '🪩', 'Disco-Fieber', 'Alle Stationen der 70er geschafft'],
+  ['d1980', '📼', 'Kind der 80er', 'Alle Stationen der 80er geschafft'],
+  ['d1990', '📟', 'Neunziger-Held', 'Alle Stationen der 90er geschafft'],
+  ['d2000', '📱', 'Millennium', 'Alle Stationen der 2000er geschafft'],
+  ['perfect5', '💯', 'Fünfmal perfekt', 'Fünf Stationen mit allen 6 richtig'],
+  ['right100', '✅', 'Hundert Treffer', '100 richtige Antworten'],
+  ['right500', '🏅', 'Musiklexikon', '500 richtige Antworten'],
+  ['facts25', '🧠', 'Besserwisser', '25 Wissensfragen richtig'],
+  ['facts100', '🎓', 'Musik-Professor', '100 Wissensfragen richtig'],
+  ['games50', '🚌', 'Vielreisender', '50 Stationen gespielt'],
 ];
 function checkAch(g) {
   const have = LS.get('ach', {}), fresh = [], m = tourOf(), s = starsMap(m), done = doneCount(m), tot = totalStars(m);
-  const artistsDone = (DATA?.artists || []).filter(a => { const t = tourOf('a:' + a.id); return doneCount(t) === t.stations.length; }).length;
+  const artistTours = (DATA?.artists || []).map(a => tourOf('a:' + a.id));
+  const artistsDone = artistTours.filter(t => doneCount(t) === t.stations.length).length;
+  const decDone = d => STATIONS.filter(x => Math.floor(x.year / 10) * 10 === d).every(x => (+s[x.id] || 0) >= 1);
+  const st = Sync.view('ot.stats', LS.get('stats', null)) || {}, factsRight = st.types?.fact?.[0] || 0;   // alle Geräte zusammen
   const ok = {
     first: true, perfect: g.right === g.qs.length, sixties: STATIONS.filter(x => x.year < 1970).every(x => (+s[x.id] || 0) >= 1),
     half: done >= 12, all: done >= STATIONS.length, s36: tot >= 36, s72: tot >= STATIONS.length * 3, fan: artistsDone >= 1, fans3: artistsDone >= 3,
+    fans5: artistsDone >= 5, fans10: artistsDone >= 10, astar: artistTours.some(t => totalStars(t) === t.stations.length * 3),
+    d1970: decDone(1970), d1980: decDone(1980), d1990: decDone(1990), d2000: decDone(2000),
+    perfect5: (st.perfect || 0) >= 5, right100: (st.right || 0) >= 100, right500: (st.right || 0) >= 500,
+    facts25: factsRight >= 25, facts100: factsRight >= 100, games50: (st.games || 0) >= 50,
   };
   for (const a of ACH) if (ok[a[0]] && !have[a[0]]) { have[a[0]] = today(); fresh.push(a); }
   if (fresh.length) LS.set('ach', have);
@@ -546,6 +566,7 @@ function renderHome() {
   const t = curTour(), artists = view === 'artists';
   $('#mapWrap').classList.toggle('hidden', artists);
   $('#artistGrid').classList.toggle('hidden', !artists);
+  $('#artistSort').classList.toggle('hidden', !artists);
   $('#backArtists').classList.toggle('hidden', !view.startsWith('a:'));
   if (artists) {
     $('#tourKicker').textContent = tx('Künstler-Touren');
@@ -574,7 +595,12 @@ function renderHome() {
 }
 function renderArtists() {
   if (!DATA) { $('#artistGrid').innerHTML = '<div class="loader"></div>'; return; }
-  $('#artistGrid').innerHTML = DATA.artists.map(a => {
+  // sortierbar: A–Z, nach Zahl der Stationen (meiste zuerst) oder nach Fortschritt (meiste Sterne in Prozent zuerst)
+  const sort = LS.get('artistSort', 'az'), name = a => a.A.replace(/^The /i, '');
+  $$('#artistSort button').forEach(b => b.classList.toggle('on', b.dataset.v === sort));
+  const rows = DATA.artists.map(a => ({ a, t: tourOf('a:' + a.id) })).map(r => ({ ...r, n: r.t.stations.length, p: totalStars(r.t) / (r.t.stations.length * 3) }));
+  rows.sort((x, y) => (sort === 'st' ? y.n - x.n : sort === 'prog' ? y.p - x.p : 0) || name(x.a).localeCompare(name(y.a), LOC()));
+  $('#artistGrid').innerHTML = rows.map(({ a }) => {
     const t = tourOf('a:' + a.id), tot = totalStars(t), max = t.stations.length * 3, done = doneCount(t) === t.stations.length;
     const img = a.c ? cover(a, 250) : '';
     return `<button class="artist ${done ? 'done' : ''}" data-a="${a.id}">
@@ -725,6 +751,7 @@ async function renderChanges() {
 /* ---------- Ereignisse ---------- */
 $('#map').onclick = e => { const b = e.target.closest('.stn'); if (b && curTour()) openStation(curTour().id, +b.dataset.i); };
 $('#tourTabs').onclick = e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); };
+$('#artistSort').onclick = e => { const b = e.target.closest('button'); if (b) { LS.set('artistSort', b.dataset.v); renderArtists(); } };
 $('#artistGrid').onclick = e => { const b = e.target.closest('[data-a]'); if (b) { setView('a:' + b.dataset.a); const t = curTour(); if (totalStars(t)) requestAnimationFrame(() => scrollToStation(openCount(t) - 1)); } };
 $('#backArtists').onclick = () => setView('artists');
 $('#nextBtn').onclick = () => { const i = +$('#nextBtn').dataset.i; if (i >= 0 && curTour()) startStation(curTour().id, i); };

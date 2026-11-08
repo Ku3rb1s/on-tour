@@ -291,3 +291,6 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
 .st-hero .st-img{width:96px;height:96px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold),0 12px 28px -10px #000;margin-bottom:6px}
 @media (max-width:380px){.artist-grid{grid-template-columns:1fr 1fr;gap:8px}.artist .a-cv{width:70px;height:70px}}
 .q-title.long{font-size:clamp(1.1rem,4.6vw,1.4rem);line-height:1.25}
+/* Sortierung der Stars */
+.artist-sort{margin:14px 0 0;display:flex}
+.artist-sort button{flex:1;font-size:.82rem;padding:.5em .6em}
