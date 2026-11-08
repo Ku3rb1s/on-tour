@@ -36,7 +36,9 @@ button.big{color:#2a1700}
 .dec{position:absolute;left:0;right:0;display:flex;justify-content:center;pointer-events:none}
 .dec span{font-family:Outfit,system-ui,sans-serif;font-weight:800;font-size:.8rem;letter-spacing:.04em;color:var(--muted);
   background:rgba(var(--deep),.55);border:1px solid var(--line);border-radius:99px;padding:.25em .9em}
-.stn{position:absolute;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;width:132px;padding:0;
+/* Zentrieren mit translate (nicht transform): Das Drücken aller Knöpfe (button:active → transform:scale) darf die
+   Station nicht verschieben – sonst springt sie nach rechts weg, und ein Tipp links daneben kommt nicht an */
+.stn{position:absolute;translate:-50% 0;display:flex;flex-direction:column;align-items:center;gap:1px;width:132px;padding:0;
   background:none;box-shadow:none;color:var(--text);font-weight:600;border-radius:18px;-webkit-tap-highlight-color:transparent}
 .stn .dot{position:relative;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:1.65rem;margin-bottom:5px;
   background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.2),rgba(var(--surf),1) 70%);border:3px solid var(--teal);
@@ -55,7 +57,6 @@ button.big{color:#2a1700}
 .stn.locked .dot{border-color:rgba(255,255,255,.14);background:rgba(var(--surf),.8)}
 .stn.locked .ic-e{opacity:.35;filter:grayscale(1)}
 .stn .lock{position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;padding:4px;border-radius:50%;background:rgba(var(--deep),.95);border:1px solid var(--line);color:var(--muted)}
-.stn:active .dot{transform:scale(.93)}
 @media (hover:hover) and (pointer:fine){.stn:not(.locked):hover .dot{transform:scale(1.06)}}
 /* gerade zurück von einer Station: Sterne ploppen, neue Station leuchtet auf */
 .stn.fresh .st i.on{animation:starPop .6s cubic-bezier(.3,1.6,.5,1) both}

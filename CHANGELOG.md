@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.2.5 – 08.11.2026
+- Behoben: Beim Drücken sprang eine Station auf der Karte nach rechts weg – ein Tipp auf ihre linke Hälfte kam dann nicht an. Jetzt wird sie beim Drücken nur etwas kleiner, wie alle Knöpfe
+
 ## 1.2.4 – 08.11.2026
 - Behoben: Direkt nach dem Schließen eines Stationsfensters ging der nächste Tipp (z. B. auf die nächste Station) verloren – jetzt öffnet sie beim ersten Tipp
 
