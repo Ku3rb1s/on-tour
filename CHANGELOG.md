@@ -1,5 +1,11 @@
 # Neuerungen
 
+## 1.2.0 – 08.11.2026
+- Drei Bonus-Stationen in der Haupt-Tour: 🇩🇪 Nur Deutsch (ab 20 ⭐), 💎 Milliarden-Club (ab 40 ⭐) und 🤝 Duette (ab 60 ⭐) – mit Songs aus allen Jahrzehnten
+- Ergebnis teilen: am Ende jeder Station, z. B. „On Tour 🎸 Memphis 1956 ★★☆ · 5 von 6“
+- Bestenliste der Jukebox: On Tour bei den Highscores – Sterne in der Haupt-Tour oder in allen Touren zusammen
+- Behoben: Bei „Mit wem?“ konnten Mitwirkende wie „Mixed By …“ als Antwort auftauchen, und Bandnamen wie AC/DC galten als Duett
+
 ## 1.1.1 – 08.11.2026
 - Neu in jeder Künstler-Tour: die **Zugabe** – allgemeine Fragen zum Star und ein Album-Quiz (Auf welchem Album ist der Song? Wann erschien das Album?)
 - Behoben: Nach einem Sprachwechsel mitten in einer Aufgabe blieben Antworten und Auflösung in der alten Sprache

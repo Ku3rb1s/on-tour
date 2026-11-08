@@ -52,6 +52,14 @@ const STATIONS = [
     boost: ['BTS', 'BLACKPINK', 'PSY', 'TWICE', 'Stray Kids', 'NewJeans', 'Jungkook', 'Jung Kook', 'Jimin', 'LISA', 'ROSÉ', 'JENNIE', 'JISOO', 'aespa', 'SEVENTEEN', 'IVE', 'LE SSERAFIM', 'EXO', 'BIGBANG', 'ITZY', 'Red Velvet', '(G)I-DLE', 'i-dle', 'KATSEYE', 'HUNTR/X', 'ENHYPEN', 'TXT', 'TOMORROW X TOGETHER', 'ATEEZ', 'ILLIT', 'BABYMONSTER', 'Agust D', 'V', 'Jin', 'j-hope', 'RM', 'Fifty Fifty', 'FIFTY FIFTY', 'KISS OF LIFE', 'NMIXX', 'G-DRAGON', 'Saja Boys', 'ROSÉ & Bruno Mars'], only: true },
   { id: 'puertorico22', city: 'Puerto Rico', year: 2022, theme: 'Latin',                  icon: '🌺', y: [2015, 2026], g: ['latin'], game: 'oon',
     boost: ['Bad Bunny', 'Daddy Yankee', 'Luis Fonsi', 'J Balvin', 'KAROL G', 'Ozuna', 'Rauw Alejandro', 'Myke Towers', 'Feid', 'Shakira', 'Anuel AA', 'Farruko', 'Nicky Jam', 'Maluma', 'Sech', 'Jhayco', 'Jhay Cortez', 'Peso Pluma', 'Rosalía', 'ROSALÍA', 'Bizarrap', 'Quevedo', 'Young Miko', 'Tainy', 'Wisin', 'Yandel', 'Don Omar', 'Camilo', 'Becky G', 'Natti Natasha', 'Grupo Frontera', 'Manuel Turizo', 'Sebastián Yatra', 'Tini', 'TINI', 'Eladio Carrion', 'Arcángel', 'De La Ghetto', 'Lunay'] },
-  { id: 'today',       city: 'Heute',        year: 2026, theme: 'Die größten Hits jetzt', icon: '🚀', y: [2023, 2026], g: [], game: 'hom', boost: [] },
+  { id: 'today',       city: 'Heute',        year: 2026, theme: 'Die größten Hits jetzt', icon: '🚀', y: [2023, 2026], g: [], game: 'hom', boost: [], spread: true },
 ];
-if (typeof module !== 'undefined') module.exports = STATIONS;
+/* Bonus-Stationen der Haupt-Tour („Zugaben“): offen ab einer Zahl von Sternen in der Haupt-Tour (need), beliebig oft spielbar.
+   Sterne in ot.stars unter ihrer id (zugabe-…). must: Bedingung für die Songs (im Datenskript): billion = über 1 Mrd. Streams,
+   duet = Song mit Gast-Star. Statt „One-Hit-Wonder“ aus dem Konzept: Duette – ob jemand ein One-Hit-Wonder ist, geben die Daten nicht her. */
+const BONUS = [
+  { id: 'zugabe-de',  need: 20, icon: '🇩🇪', city: 'Nur Deutsch',      year: 0, theme: 'Deutsche Hits aus allen Jahrzehnten', y: [1960, 2026], g: [], de: true, game: 'nd', boost: [], spread: true },
+  { id: 'zugabe-bn',  need: 40, icon: '💎', city: 'Milliarden-Club',   year: 0, theme: 'Über 1 Milliarde Streams',            y: [1950, 2026], g: [], must: 'billion', game: 'hom', boost: [], spread: true },
+  { id: 'zugabe-duo', need: 60, icon: '🤝', city: 'Duette',            year: 0, theme: 'Songs mit Gast-Stars',                y: [1950, 2026], g: [], must: 'duet', game: 'gr', boost: [], spread: true },
+];
+if (typeof module !== 'undefined') module.exports = Object.assign(STATIONS, { BONUS });

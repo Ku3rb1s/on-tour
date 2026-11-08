@@ -309,3 +309,21 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
 #end .round-meta .pill{min-width:0;overflow:hidden;text-overflow:ellipsis}
 #end .round-meta .pill:first-child{flex:1 1 auto}
 #end .round-meta .pill:last-child{flex:none}
+
+/* Bonus-Stationen über der Karte der Haupt-Tour */
+.bonus-box{margin-top:14px}
+.bonus-box .group-h{margin:0 6px 8px}
+.bonus-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bonus{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 6px 10px;border-radius:18px;white-space:normal;text-align:center;
+  background:linear-gradient(165deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid var(--line);color:var(--text);box-shadow:none;font-weight:600;min-width:0}
+.bonus .b-ic{font-size:1.6rem;line-height:1.2}
+.bonus b{font-family:Outfit,system-ui,sans-serif;font-size:.86rem;line-height:1.15;overflow-wrap:anywhere}
+.bonus small{font-size:.74rem;color:var(--muted)}
+.bonus small i{font-style:normal;color:rgba(255,255,255,.18)}
+.bonus small i.on{color:var(--gold)}
+.bonus.locked .b-ic{filter:grayscale(1);opacity:.5}
+.bonus .bar{width:80%;height:4px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:3px}
+.bonus .bar b{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--gold))}
+.bonus:active{transform:scale(.97)}
+/* Teilen am Ende einer Station */
+.share-btn{display:flex;margin:14px auto 0;gap:6px;align-items:center}

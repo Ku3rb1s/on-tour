@@ -74,7 +74,9 @@ for (const e of D.byArtist.values()) e.de = e.songs.every(isDe);
 const deArtist = s => D.byArtist.get(s.ai).de;
 const GERMAN = /[äöüß]|\b(der|die|das|und|ich|du|nicht|ein|eine|mit|wir|ist|im|auf|für|mein|dein|zu|von|wie|was|wenn|nur|alles|kein|nie|noch|mal|doch|sie|er|es|uns|dich|mich|dir|mir|hier|heute|immer|wieder|liebe|herz|nacht|tag|zeit|leben|welt|junge|sonne|bist|bin|sind|haben|geht|komm|kann|will|keine|ohne|bis|seit|aus|vom|zum|zur|am|wo|warum|tanz|lied|stadt|land|haus|see|meer|himmel|stern|sterne|engel|feuer|wasser|luft|frei|allein|zusammen|gut|neu|alt|jung|klein)\b/i;
 const FRENCH = /\b(la|le|les|du|des|et|est|une|pour|que|qui|toi|moi|je|tu|il|elle|ça|ce|mon|ma)\b|l'a\b|j'ai/i;
-const germanTitle = s => GERMAN.test(s.T) && !FRENCH.test(s.T);
+// englische Titel mit „die“ (Die On This Hill, Ride or Die) sind nicht deutsch
+const ENGLISH = /\b(i|a|the|you|your|my|me|this|that|of|and|or|on|it|is|we|love|baby|ride|hill|night|time|girl|boy|don't|i'm)\b/i;
+const germanTitle = s => GERMAN.test(s.T) && !FRENCH.test(s.T) && !ENGLISH.test(s.T);
 const XMAS = /christmas|wonderful time|xmas|weihnacht|navidad|\bjul\b|\bsnow\b|santa|jingle|winter wonderland|feliz/i;
 
 /* ---------- 2. Hilfen ---------- */
@@ -157,11 +159,21 @@ const ref = s => { if (!songIdx.has(s.i)) { songIdx.set(s.i, songsOut.length); s
 const boostKeys = st => new Set((st.boost || []).map(HM.key));
 const L = [];   // Bericht
 
+// echte Gäste eines Songs: Deezer-Mitwirkende ohne Rollenangabe („Mixed By: …“ ist kein Gast) und „feat. …“ im Titel –
+// nicht die Teile des Bandnamens (AC/DC, Earth, Wind & Fire)
+const realGuests = p => (p || []).filter(x => !/:/.test(x));
+function guestsIn(s) {
+  const g = [...realGuests(s.p)];
+  for (const m of String(s.t).matchAll(/[([]\s*(?:feat\.?|ft\.?|featuring|with)\s+([^)\]]+)[)\]]/gi)) g.push(m[1]);
+  return g.filter(x => HM.key(x) && HM.key(x) !== s.ak && !HM.related(x, [s.A]));
+}
 /** Passt Song s zur Station? Jahr geprüft und im Zeitraum, deutsch/nicht deutsch, bei only: nur boost-Interpreten */
 function inStation(st, s, pad = 0) {
   if (s.q < 1 || !s.T || XMAS.test(s.t) || s.y < st.y[0] - pad || s.y > st.y[1] + pad) return false;
   const bk = boostKeys(st), boosted = bk.has(s.ak) || s.parts.some(p => bk.has(HM.key(p)));
   if (st.only && !bk.has(s.ak)) return false;   // K-Pop: nur Songs der Stars selbst (nicht Remixe mit Gast)
+  if (st.must === 'billion' && !(s.n >= 1000)) return false;                                        // Bonus: Milliarden-Club
+  if (st.must === 'duet' && !guestsIn(s).length) return false;   // Bonus: mit Gast-Star
   if (st.de) return isDe(s) && (boosted || (germanTitle(s) && deArtist(s)));
   return !deArtist(s);
 }
@@ -170,7 +182,15 @@ function candidates(st, opt) {
   const bk = boostKeys(st), [f0, f1] = opt.band;
   return D.tracks.filter(s => inStation(st, s) && !opt.used.has(s.i) && s.f >= f0 && s.f <= f1)
     .map(s => ({ s, score: s.f - (bk.has(s.ak) || s.parts.some(p => bk.has(HM.key(p))) ? 300 : 0) + (st.g.length && !st.g.includes(s.g) ? 220 : 0) }))
-    .sort((a, b) => a.score - b.score || a.s.i - b.s.i).map(x => x.s);
+    .sort((a, b) => a.score - b.score || a.s.i - b.s.i).map(x => x.s)
+    .reduce((acc, s, i, arr) => i ? acc : (st.spread ? spread(arr) : arr), []);
+}
+// Bonus-Stationen über alle Jahrzehnte: reihum je Jahrzehnt der bekannteste noch freie Song (sonst wären es nur neue Hits)
+function spread(list) {
+  const by = new Map(); for (const s of list) { const d = Math.floor(s.y / 10); (by.get(d) || by.set(d, []).get(d)).push(s); }
+  const lanes = [...by.values()], out = [];
+  for (let k = 0; out.length < list.length; k++) for (const l of lanes) if (l[k]) out.push(l[k]);
+  return out;
 }
 
 const byFame = [...D.tracks].sort((a, b) => a.f - b.f || a.i - b.i);
@@ -266,14 +286,14 @@ function keepStation(name, st) {
   } catch (e) { L.push(`  ↻ ${name}/${st.id}: neu gebaut (${e.message})`); return null; }
 }
 const tours = {};
-function buildTour(name, opt) {
+function buildTour(name, opt, list = STATIONS) {
   tours[name] = {};
   L.push(`════ Tour „${name}“ ════`);
   // erst alle Stationen übernehmen, die bleiben können (ihre Songs sind dann vergeben), dann die übrigen neu bauen
-  const kept = STATIONS.map(st => keepStation(name, st));
+  const kept = list.map(st => keepStation(name, st));
   kept.forEach(qs => qs?.forEach(q => [q.s, q.a, q.b].filter(Boolean).forEach(s => { if (!opt.used.has(s.i)) { opt.used.add(s.i); opt.artistUse.set(s.ak, (opt.artistUse.get(s.ak) || 0) + 1); } })));
-  STATIONS.forEach((st, i) => {
-    const qs = kept[i] || buildStation(st, { ...opt, h: lerp(opt.h0, opt.h1, i / (STATIONS.length - 1)) });
+  list.forEach((st, i) => {
+    const qs = kept[i] || buildStation(st, { ...opt, h: lerp(opt.h0, opt.h1, i / Math.max(1, list.length - 1)) });
     tours[name][st.id] = qs.map(encode);
     const kinds = qs.reduce((m, q) => (m[q.k] = (m[q.k] || 0) + 1, m), {});
     L.push(`--- ${i + 1}. ${st.city} ${st.year} · ${st.theme}: ${qs.length} Aufgaben ${JSON.stringify(kinds)}${kept[i] ? ' (unverändert)' : ''}`, ...qs.map(q => '  ' + fmtQ(q)), '');
@@ -344,7 +364,7 @@ async function songsOfStar(name) {
 }
 /** Gäste eines Songs aus Sicht des Stars k (der Hauptinterpret zählt mit, wenn der Star selbst nur Gast ist) */
 function guestsOf(s, k) {
-  const names = [s.A, ...(s.p || []), ...(s.dz ? s.parts : [])];
+  const names = [s.A, ...realGuests(s.p), ...(s.dz ? s.parts : [])];
   for (const m of String(s.t).matchAll(/[([]\s*(?:feat\.?|ft\.?|featuring|with)\s+([^)\]]+)[)\]]/gi)) names.push(...m[1].split(/\s*(?:,|&| and | x )\s*/i));
   const out = [];
   for (const n of names.map(x => String(x).trim()).filter(Boolean)) {
@@ -479,6 +499,8 @@ async function buildArtist(name) {
 (async () => {
   const used = new Set(), artistUse = new Map();
   buildTour('main', { seed: 'ontour-main-', used, artistUse, band: [0, 700], h0: .05, h1: .6, maxArtist: 3 });
+  // Bonus-Stationen: eigene Songauswahl (dürfen Songs der Haupt-Tour enthalten), je Interpret höchstens 2
+  buildTour('bonus', { seed: 'ontour-bonus-', used: new Set(), artistUse: new Map(), band: [0, 900], h0: .45, h1: .55, maxArtist: 2 }, STATIONS.BONUS);
 
   const artistsOut = [];
   L.push('════ Künstler-Touren ════');
