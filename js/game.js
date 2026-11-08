@@ -3,7 +3,7 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.2.2', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.2.3', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
 const DATA_V = 'd10';
 const $ = s => document.querySelector(s);
@@ -597,11 +597,14 @@ function mapLayout(t) {
   }
   return { items, h: y + PAD_BOT };
 }
+let mapHtml = '', gridHtml = '';
 function renderMap(t) {
   const { items, h } = mapLayout(t), open = openCount(t);
   const wrap = $('#mapWrap');
   wrap.style.height = h + 'px';
-  $('#map').innerHTML = items.map(it => {
+  // Stationen nur neu bauen, wenn sich etwas geändert hat: Neuzeichnen (Abgleich, Adressleiste beim Scrollen = resize)
+  // zwischen Finger runter und hoch ersetzt sonst den gedrückten Knopf – dann kommt der Tipp nicht an
+  const html = items.map(it => {
     if (it.dec) return `<div class="dec" style="top:${it.y}px"><span>${decLabel(it.dec)}</span></div>`;
     const st = t.stations[it.i], n = starOf(t, it.i), locked = it.i >= open, cur = it.i === open - 1 && n === 0;
     const mine = fresh?.tid === t.id;
@@ -613,6 +616,7 @@ function renderMap(t) {
       <span class="st">${locked ? '' : [0, 1, 2].map(k => `<i class="${k < n ? 'on' : ''}">★</i>`).join('')}</span>
     </button>`;
   }).join('');
+  if (mapHtml !== html) $('#map').innerHTML = mapHtml = html;
   drawRoad(items, open);
   if (t.kind === 'artist') Promise.all(t.stations.map(s => coverColor(s.ac))).then(cols => {
     if (curTour()?.id !== t.id) return;
@@ -647,7 +651,7 @@ const curTour = () => view === 'artists' ? null : tourOf(view);
 function setView(v) { view = v; LS.set('view', v); renderHome(); window.scrollTo(0, 0); }
 function renderHome() {
   if (view !== 'main' && !DATA) {   // Künstler stehen in data/tour.json – erst laden
-    $('#mapWrap').classList.add('hidden'); $('#artistGrid').classList.remove('hidden'); $('#artistGrid').innerHTML = '<div class="loader"></div>';
+    $('#mapWrap').classList.add('hidden'); $('#artistGrid').classList.remove('hidden'); $('#artistGrid').innerHTML = '<div class="loader"></div>'; gridHtml = '';
     loadData().then(renderHome).catch(() => setView('main')); return;
   }
   if (view.startsWith('a:') && !tourOf(view)) view = 'artists';
@@ -717,13 +721,13 @@ async function resetTour(t) {
 }
 $('#tourReset').onclick = () => { const t = curTour(); if (t) resetTour(t); };
 function renderArtists() {
-  if (!DATA) { $('#artistGrid').innerHTML = '<div class="loader"></div>'; return; }
+  if (!DATA) { $('#artistGrid').innerHTML = '<div class="loader"></div>'; gridHtml = ''; return; }
   // sortierbar: A–Z, nach Zahl der Stationen (meiste zuerst) oder nach Fortschritt (meiste Sterne in Prozent zuerst)
   const sort = LS.get('artistSort', 'az'), name = a => a.A.replace(/^The /i, '');
   $$('#artistSort button').forEach(b => b.classList.toggle('on', b.dataset.v === sort));
   const rows = DATA.artists.map(a => ({ a, t: tourOf('a:' + a.id) })).map(r => ({ ...r, n: r.t.stations.length, p: totalStars(r.t) / (r.t.stations.length * 3) }));
   rows.sort((x, y) => (sort === 'st' ? y.n - x.n : sort === 'prog' ? y.p - x.p : 0) || name(x.a).localeCompare(name(y.a), LOC()));
-  $('#artistGrid').innerHTML = rows.map(({ a }) => {
+  const html = rows.map(({ a }) => {
     const t = tourOf('a:' + a.id), tot = totalStars(t), max = t.stations.length * 3, done = doneCount(t) === t.stations.length;
     // Profilbild des Stars bei Deezer (p), sonst das Cover seines bekanntesten Songs
     const img = artistPic(a);
@@ -732,6 +736,7 @@ function renderArtists() {
       <b>${esc(a.A)}</b><small>${tot ? `⭐ ${tot}/${max}` : tx('{n} Stationen', { n: t.stations.length })}</small>
       <i class="bar"><b style="width:${(tot / max * 100).toFixed(1)}%"></b></i></button>`;
   }).join('');
+  if (gridHtml !== html) $('#artistGrid').innerHTML = gridHtml = html;   // wie bei der Karte: nur bei Änderung neu bauen
 }
 
 /* ---------- Bonus-Stationen (Karten über der Karte der Haupt-Tour) ---------- */

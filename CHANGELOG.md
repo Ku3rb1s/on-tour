@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.2.3 – 08.11.2026
+- Behoben: Ein Tipp auf eine Station öffnete sie manchmal erst beim zweiten oder dritten Mal (die Karte wurde beim Scrollen und beim Abgleich neu gezeichnet, während der Finger noch drauf war)
+
 ## 1.2.2 – 08.11.2026
 - Neu: Jede Tour lässt sich einzeln zurücksetzen (Knopf unter der Karte) – die Haupt-Tour samt Bonus-Stationen oder eine Künstler-Tour; Erfolge bleiben
 - Abgleich: Zurückgesetzte Werte kommen nicht mehr von anderen Geräten zurück
