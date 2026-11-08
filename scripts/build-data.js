@@ -236,7 +236,7 @@ function encode(q) {
     case 'rec': return { k: 'rec', s: ref(q.s), o: q.o.map(ref) };
     case 'old': return { k: 'old', a: ref(q.a), b: ref(q.b) };
     case 'who': case 'feat': return { k: q.k, s: ref(q.s), o: q.o, ...(q.A ? { A: q.A } : {}) };
-    case 'fact': return { k: 'fact', s: ref(q.s), q: q.q, o: q.o, ...(q.m || q.alb ? { m: 1 } : {}), ...(q.ha ? { ha: 1 } : {}) };   // ha: Interpret ausblenden (verrät die Antwort)   // m: es läuft der genannte Song
+    case 'fact': return { k: 'fact', s: ref(q.s), q: q.q, o: q.o, ...(q.m || q.alb ? { m: 1 } : {}), ...(q.ha ? { ha: 1 } : {}), ...(q.bl || q.alb ? { bl: 1 } : {}) };   // ha: Interpret ausblenden, bl: Cover verschwommen (verraten die Antwort)   // m: es läuft der genannte Song
     case 'year': return { k: 'year', s: ref(q.s), o: q.o };
     case 'claim': {
       const c = q.c, o = { k: c.k, ok: c.ok };
@@ -463,7 +463,9 @@ async function buildArtist(name) {
     if (named.length && !mentioned) L.push(`  ♪ ${name}: „${fq.q.de}“ – genannter Song geht nicht, dazu läuft „${song.T}“`);
     else if (!mentioned && song.tk !== HM.titleKey(fq.s)) L.push(`  ↪ ${name}: „${fq.s}“ nicht da – dazu läuft „${song.T}“`);
     // m: der laufende Song ist der in der Frage genannte – sonst zeigt das Spiel „läuft im Hintergrund“
-    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y, ...(mentioned ? { m: 1 } : {}), ...(artistLeak(song) ? { ha: 1 } : {}) };
+    // Cover verschwommen (bl), wenn es die Antwort zeigen kann: Interpret darauf, oder die Antwort ist ein Album des Stars
+    const ha = artistLeak(song), albAns = hit(albums.map(a => a.t)) && optTxt(fq.o[0]).some(t => albums.some(a => HM.words(a.t) === HM.words(t)));
+    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y, ...(mentioned ? { m: 1 } : {}), ...(ha ? { ha: 1 } : {}), ...(ha || albAns ? { bl: 1 } : {}) };
   };
   for (const q of (FACTS_SONG[name] || []).map(factQ).filter(Boolean)) {
     const d = st => q.y < st.y[0] ? st.y[0] - q.y : q.y > st.y[1] ? q.y - st.y[1] : 0;

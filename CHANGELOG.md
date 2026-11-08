@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.2.8 – 08.11.2026
+- Wissensfragen: Kann das Cover die Antwort zeigen (Interpret oder gesuchtes Album darauf), ist es verschwommen – nach dem Antworten wird es scharf und der Interpret erscheint
+
 ## 1.2.7 – 08.11.2026
 - Wissensfragen: Nennt die Frage einen Song, läuft jetzt genau dieser – auch wenn er von jemand anderem ist (z. B. „I Gotta Feeling“ bei David Guetta)
 - Behoben: Bei manchen Fragen verriet der Interpret auf der Karte die Antwort (z. B. Mark Ronson bei „Uptown Funk“) – dann wird er jetzt ausgeblendet

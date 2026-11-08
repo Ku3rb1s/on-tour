@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.2.7', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.2.8', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd12';
+const DATA_V = 'd13';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -360,7 +360,7 @@ function renderQ(quiet = false) {   // quiet: nur neu zeichnen (Sprachwechsel), 
     opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
   } else if (q.k === 'fact') {
     // m: es läuft der Song aus der Frage – sonst ist er nur Begleitmusik („Dazu läuft“); ha: Interpret verrät die Antwort
-    body.innerHTML = songCard(s, { bg: !q.m, ...(q.ha ? { aTxt: '' } : {}) });
+    body.innerHTML = songCard(s, { bg: !q.m, blur: !!q.bl, ...(q.ha ? { aTxt: '' } : {}) });   // bl: Cover zeigt die Antwort
     opts.innerHTML = q.opts.map((i, k) => optBtn(i, k, inLang(q.o[i]))).join('');
   } else if (q.k === 'year') {
     body.innerHTML = songCard(s);
@@ -435,7 +435,7 @@ function paintAnswer(q, v, ok) {
   $$('#qBody .song').forEach(el => el.classList.remove('blur'));
   // Erkennen: kein zweiter Titel oben (steht schon im grünen Knopf) – nur das Cover erscheint in der Mitte der Platte
   if (q.k === 'rec') { const l = $('#qBody .vinyl .lbl'), img = cover(s, 250); if (l && img) { l.style.backgroundImage = `url("${img}")`; l.classList.add('cov'); } $('#qBody .tap-hint')?.remove(); }
-  else if (q.k === 'who' || q.k === 'claim' || q.k === 'feat') { const t = $('#qBody .song .t'), a = $('#qBody .song .a'); if (t) t.textContent = s.T; if (a) a.textContent = s.a0; }
+  else if (q.k === 'who' || q.k === 'claim' || q.k === 'feat' || (q.k === 'fact' && q.ha)) { const t = $('#qBody .song .t'), a = $('#qBody .song .a'); if (t) t.textContent = s.T; if (a) a.textContent = s.a0; }
   const fact = q.k === 'fact' ? `<b>${esc(inLang(q.o[0]))}</b>` : q.k === 'claim' ? `<b>${esc(s.T)}</b> ${factHtml(q.c, s)}` : q.k === 'old' ? '' : `<b>${esc(s.T)}</b> · ${esc(s.a0)}${yTxt(s)}`;
   $('#qFact').innerHTML = `<span class="${ok ? 'good' : 'wrong'}">${ok ? '✓ ' + tx('Richtig!') : v == null ? '⏱ ' + tx('Zeit abgelaufen') : '✗ ' + tx('Daneben!')}</span> ${fact}`;
   renderDots();
