@@ -1,5 +1,11 @@
 # Neuerungen
 
+## 1.3.0 – 08.11.2026
+- **Adventskalender**: Vom 1. bis 24. Dezember öffnet sich in der Jukebox jeden Tag ein Türchen – gespielt wird hier in On Tour: 6 Aufgaben (Tür 24: 10) rund um Weihnachten und Winter, für alle dieselben
+- Themen-Türchen: große Klassiker, Swing-Weihnacht, Nikolaus „Wer singt?“, deutsche Weihnacht, Winterhits, Weihnachten der 2010er, Jahresrückblick und das Heiligabend-Finale mit Bonusstern
+- Sterne wie in der Tour, Türchen-Serie, verpasste Türchen bis 6. Januar nachholen, drei neue Erfolge, Abschlussbild zum Teilen und exklusive Avatare hinter Tür 6, 12, 18 und 24
+- Neue Weihnachtsliste mit über 140 Songs (Originaljahre über MusicBrainz, ohne Karaoke- und Cover-Fassungen)
+
 ## 1.2.9 – 08.11.2026
 - Neue Avatare: über 100 weitere Emojis – mehr Tiere, Winter & Weihnachten, Essen & Trinken und mehr
 

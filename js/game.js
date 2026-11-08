@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.2.9', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.3.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd13';
+const DATA_V = 'd14';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -52,8 +52,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
 const fmtDate = d => new Date(d + 'T12:00:00').toLocaleDateString(LOC(), { day: 'numeric', month: 'long', year: 'numeric' });
-const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const starTxt = n => '★'.repeat(n) + '☆'.repeat(3 - n);
+// Zufall: sonst Math.random – im Adventskalender ein fester Startwert aus Jahr und Tür (für alle dieselben Aufgaben)
+let rnd = Math.random;
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const starTxt = n => '★'.repeat(Math.min(3, n)) + '☆'.repeat(3 - Math.min(3, n)) + (n > 3 ? ' 🌟' : '');   // 4 = Bonusstern (Adventskalender, Tür 24)
 
 /* ---------- Touren ----------
    Eine Tour ist eine Liste von Stationen mit festen Aufgaben. Die Sterne stehen in ot.<key> = { Stations-Schlüssel: Sterne }
@@ -66,6 +68,7 @@ const stLabel = st => st.id === 'today' ? tx('Heute') : `${cityName(st)} ${st.ye
 const decLabel = y => tx('{d}er', { d: Math.floor(y / 10) * 10 });
 const yrs = y => y[0] === y[1] ? String(y[0]) : `${y[0]}–${y[1]}`;
 function tourOf(id = 'main') {
+  if (id === 'advent') return Advent.tour();   // Adventskalender (js/advent.js)
   // Bonus-Stationen der Haupt-Tour (js/stations.js BONUS): offen ab need Sternen in der Haupt-Tour, Sterne ebenfalls in ot.stars
   if (id === 'bonus') return {
     id, kind: 'bonus', key: 'stars',
@@ -269,7 +272,7 @@ function factHtml(c, s) {
    Aus den gebauten Aufgaben (8–12) kommen 6 dran: je Art mindestens eine, kein Song doppelt, Reihenfolge gemischt. */
 const groupOf = q => q.k === 'who' || q.k === 'year' ? 'gold' : q.k;
 const songsOfQ = q => [q.s, q.a, q.b, q.k === 'claim' && q.c.k === 'older' ? q.c.o : null].filter(x => x != null);
-function pickQuestions(pool) {
+function pickQuestions(pool, count = Q_PER_STATION) {
   const out = [], used = new Set();
   const fits = q => songsOfQ(q).every(i => !used.has(i));
   const take = q => { out.push(q); songsOfQ(q).forEach(i => used.add(i)); };
@@ -277,9 +280,9 @@ function pickQuestions(pool) {
   for (const g of shuffle(['rec', 'old', 'claim', 'gold', 'feat', 'fact'])) { const q = rest.find(x => groupOf(x) === g && !out.includes(x) && fits(x)); if (q) take(q); }
   // Künstler-Touren: bis zu zwei Wissensfragen je Runde
   const f2 = rest.find(x => x.k === 'fact' && !out.includes(x) && fits(x)); if (f2) take(f2);
-  for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q) && fits(q)) take(q); }
-  for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q)) take(q); }   // notfalls doch ein Song doppelt
-  return shuffle(out.slice(0, Q_PER_STATION));
+  for (const q of rest) { if (out.length >= count) break; if (!out.includes(q) && fits(q)) take(q); }
+  for (const q of rest) { if (out.length >= count) break; if (!out.includes(q)) take(q); }   // notfalls doch ein Song doppelt
+  return shuffle(out.slice(0, count));
 }
 // Überschrift je Art – in Künstler-Touren mit dem Namen des Stars
 function kindText(q) {
@@ -300,18 +303,22 @@ async function startStation(tid, idx) {
   $('#loading').classList.remove('hidden');
   try { await loadData(); } catch { $('#loading').classList.add('hidden'); return toast(tx('Die Songliste konnte nicht geladen werden.')); }
   $('#loading').classList.add('hidden');
+  if (tid === 'advent') try { await Advent.load(); } catch { return toast(tx('Die Songliste konnte nicht geladen werden.')); }
   const t = tourOf(tid), st = t?.stations[idx], pool = st?.pool();
   if (!pool?.length) return toast(tx('Die Songliste konnte nicht geladen werden.'));
-  const qs = pickQuestions(pool).map(q => {
+  // Adventskalender: für alle dieselben Aufgaben in derselben Reihenfolge (Startwert aus Jahr und Tür), Tür 24 mit 10 Aufgaben
+  if (t.kind === 'advent') rnd = Advent.rng(`advent-${t.Y}-${st.n}`);
+  const qs = pickQuestions(pool, t.kind === 'advent' && st.n === Advent.FINAL ? 10 : Q_PER_STATION).map(q => {
     // Antworten mischen (die richtige steht im Paket immer vorne)
     if (q.k === 'rec') return { ...q, opts: shuffle([q.s, ...q.o]) };
     if (q.k === 'who') return { ...q, opts: shuffle([DATA.S[q.s].A, ...q.o]) };
     if (q.k === 'feat') return { ...q, opts: shuffle([q.A, ...q.o]) };
     if (q.k === 'fact') return { ...q, opts: shuffle([0, 1, 2, 3]) };   // Nr. der Antwort, 0 = richtig
     if (q.k === 'year') return { ...q, opts: [DATA.S[q.s].y, ...q.o].sort((a, b) => a - b) };
-    if (q.k === 'old') return Math.random() < .5 ? { ...q, a: q.b, b: q.a } : q;
+    if (q.k === 'old') return rnd() < .5 ? { ...q, a: q.b, b: q.a } : q;
     return q;
   });
+  rnd = Math.random;
   applyTourColor(t, idx);
   G = { t, tid, idx, st, qs, n: 0, log: [], right: 0, ended: false, answered: false, before: starOf(t, idx), openBefore: openCount(t), mainBefore: totalStars(tourOf()) };
   show('game');
@@ -457,6 +464,7 @@ function endStation() {
   if (!G || G.ended) return;
   G.ended = true;
   stopAudio();
+  if (G.t.kind === 'advent') return endAdvent();
   const { t, st, idx } = G, stars = starsFor(G.right), map = starsMap(t), had = +map[st.sid] || 0, best = Math.max(had, stars);
   if (stars > had) { map[st.sid] = stars; LS.set(t.key, map); }
   const opened = t.kind !== 'bonus' && openCount(t) > G.openBefore;
@@ -491,10 +499,41 @@ function endStation() {
   $('#goNextBtn').classList.toggle('hidden', !canNext);
   $('#goNextLbl').textContent = !canNext ? '' : t.kind === 'artist' ? tx('Weiter: {s}', { s: next.name() }) : next.st.id === 'today' ? tx('Weiter: {s}', { s: tx('Heute') }) : tx('Nach {s}', { s: next.name() });
   $('#againBtn').classList.toggle('big', !canNext); $('#againBtn').classList.toggle('ghost', !!canNext);
+  $('#mapBtn').classList.remove('hidden'); $('#advShareBtn').classList.add('hidden');
   renderEndList();
   show('end');
   sound(stars ? 'end' : 'miss');
   if (stars === 3 || finished) confetti(140);
+  ach.forEach((a, k) => setTimeout(() => toast(`${a[1]} ${tx(a[2])}`, 2600), 900 + k * 2800));
+}
+/* Ende eines Türchens im Adventskalender: Sterne (auch 0 = geöffnet), Serie, Avatar – zurück geht es in den Kalender der Jukebox */
+function endAdvent() {
+  const { t, st } = G, n = st.n, total = G.qs.length;
+  const r = Advent.record(t, n, G.right, total), best = Math.max(r.had, r.stars), sum = Advent.summary(t.Y);
+  fresh = null;
+  recordStats(G);
+  const ach = checkAch(G);
+  $('#endStation').textContent = `${st.icon} ${st.label()}`;
+  $('#endBest').textContent = tx('Bestwert: {s}', { s: starTxt(best) });
+  $('#endKicker').textContent = r.stars >= 3 ? tx('Perfekt!') : r.stars ? tx('Türchen geschafft') : tx('Knapp daneben');
+  $('#endStars').innerHTML = Advent.starRow(r.stars, n);
+  $$('#endStars i').forEach((el, i) => { el.style.animationDelay = (.25 + i * .18) + 's'; });
+  window.countUp ? countUp($('#endScore'), G.right, k => tx('{n} von {m}', { n: k, m: total })) : $('#endScore').textContent = tx('{n} von {m}', { n: G.right, m: total });
+  $('#endSub').textContent = Advent.starsSub(G.right, total);
+  const note = r.avatar ? '🎁 ' + tx('Neuer Avatar freigeschaltet: {e} – du findest ihn jetzt in der Avatar-Auswahl.', { e: r.avatar })
+    : n === Advent.FINAL && r.first ? '🎄 ' + tx('Frohe Weihnachten! Du hast {s} Sterne gesammelt.', { s: sum.total })
+    : sum.cur >= 2 && r.first ? '🔥 ' + tx('Türchen-Serie: {n} Tage in Folge', { n: sum.cur }) : '';
+  $('#endNote').textContent = note; $('#endNote').classList.toggle('hidden', !note);
+  $('#moreLink').classList.add('hidden');
+  $('#goNextBtn').classList.remove('hidden');
+  $('#goNextLbl').textContent = tx('Zum Kalender');
+  $('#againBtn').classList.remove('big'); $('#againBtn').classList.add('ghost');
+  $('#mapBtn').classList.add('hidden');
+  $('#advShareBtn').classList.toggle('hidden', !sum.done.includes(Advent.FINAL));
+  renderEndList();
+  show('end');
+  sound(r.stars ? 'end' : 'miss');
+  if (r.stars >= 3 || r.avatar) confetti(140);
   ach.forEach((a, k) => setTimeout(() => toast(`${a[1]} ${tx(a[2])}`, 2600), 900 + k * 2800));
 }
 function renderEndList() {
@@ -544,6 +583,9 @@ const ACH = [
   ['facts25', '🧠', 'Besserwisser', '25 Wissensfragen richtig'],
   ['facts100', '🎓', 'Musik-Professor', '100 Wissensfragen richtig'],
   ['games50', '🚌', 'Vielreisender', '50 Stationen gespielt'],
+  ['adv24', '🎄', 'Alle 24 geöffnet', 'Alle Türchen eines Adventskalenders geöffnet'],
+  ['adv72', '🌟', 'Sternenhimmel', 'Alle 24 Türchen mit mindestens 3 Sternen'],
+  ['advday', '🔥', 'Kein Tag verpasst', 'Alle 24 Türchen jeweils am Tag selbst geöffnet'],
 ];
 function checkAch(g) {
   const have = LS.get('ach', {}), fresh = [], m = tourOf(), s = starsMap(m), done = doneCount(m), tot = totalStars(m);
@@ -552,12 +594,12 @@ function checkAch(g) {
   const decDone = d => STATIONS.filter(x => Math.floor(x.year / 10) * 10 === d).every(x => (+s[x.id] || 0) >= 1);
   const st = Sync.view('ot.stats', LS.get('stats', null)) || {}, factsRight = st.types?.fact?.[0] || 0;   // alle Geräte zusammen
   const ok = {
-    first: true, perfect: g.right === g.qs.length, sixties: STATIONS.filter(x => x.year < 1970).every(x => (+s[x.id] || 0) >= 1),
+    first: true, perfect: g.right === g.qs.length && g.qs.length === Q_PER_STATION, sixties: STATIONS.filter(x => x.year < 1970).every(x => (+s[x.id] || 0) >= 1),
     half: done >= 12, all: done >= STATIONS.length, s36: tot >= 36, s72: tot >= STATIONS.length * 3, fan: artistsDone >= 1, fans3: artistsDone >= 3,
     fans5: artistsDone >= 5, fans10: artistsDone >= 10, astar: artistTours.some(t => totalStars(t) === t.stations.length * 3),
     d1970: decDone(1970), d1980: decDone(1980), d1990: decDone(1990), d2000: decDone(2000),
     perfect5: (st.perfect || 0) >= 5, right100: (st.right || 0) >= 100, right500: (st.right || 0) >= 500,
-    facts25: factsRight >= 25, facts100: factsRight >= 100, games50: (st.games || 0) >= 50,
+    facts25: factsRight >= 25, facts100: factsRight >= 100, games50: (st.games || 0) >= 50, ...Advent.achOk(),
   };
   for (const a of ACH) if (ok[a[0]] && !have[a[0]]) { have[a[0]] = today(); fresh.push(a); }
   // eigener Erfolg je Star: ganze Tour geschafft – Name: die Fans des Stars oder einer seiner Songs (js: artistAch)
@@ -572,6 +614,7 @@ function renderStats() {
     [tx('Stationen geschafft'), `${doneCount(m)} / ${STATIONS.length}`],
     [tx('Sterne'), `${totalStars(m)} / ${STATIONS.length * 3}`],
   ];
+  rows.push(...Advent.statRows());
   const as = Object.values(LS.get('astars', {}) || {}).reduce((a, b) => a + (+b || 0), 0);
   if (as) rows.push([tx('Sterne in Künstler-Touren'), fmtN(as)]);
   if (st?.games) rows.push([tx('Gespielte Stationen'), fmtN(st.games)], [tx('Richtige Antworten'), `${fmtN(st.right)} (${pct(st.right, st.asked)})`]);
@@ -756,6 +799,10 @@ function renderBonus() {
 /* ---------- Ergebnis teilen (wie in den anderen Spielen) ---------- */
 function shareText() {
   const stars = starsFor(G.right), row = G.log.map(l => l.ok ? '🟩' : '🟥').join('');
+  if (G.t.kind === 'advent') return `On Tour 🎄 ${tx('Adventskalender')} · ${G.st.label()}
+${starTxt(Advent.starsFor(G.right, G.qs.length))} · ${tx('{n} von {m}', { n: G.right, m: G.qs.length })}
+${row}
+https://ku3rb1s.github.io/jukebox/`;
   const where = G.t.kind === 'artist' ? `🎤 ${G.t.artist.A} · ${G.st.name()}` : `${G.st.icon} ${G.st.label()}`;
   return `On Tour ${where}
 ${starTxt(stars)} · ${tx('{n} von {m}', { n: G.right, m: G.qs.length })}
@@ -820,7 +867,7 @@ function confetti(n = 90) {
 
 /* ---------- Anzeige ---------- */
 function show(id) {
-  for (const s of ['home', 'game', 'end']) $('#' + s).classList.toggle('hidden', s !== id);
+  for (const s of ['home', 'game', 'end', 'advent']) $('#' + s).classList.toggle('hidden', s !== id);
   $('#btnQuit').classList.toggle('hidden', id !== 'game');
   if (id !== 'home') window.scrollTo(0, 0);
 }
@@ -842,6 +889,7 @@ function ask(text, okLabel, danger = false) {
 function goMap() {
   stopAudio();
   if (G && !G.ended) G.ended = true;
+  if (G?.t.kind === 'advent' || (!G && Advent.active)) { const n = G?.st.n || Advent.door(); G = null; applyTourColor(null); return Advent.showIntro(n); }
   const idx = G?.idx;
   if (G) { view = G.tid === 'bonus' ? 'main' : G.tid; LS.set('view', view); }   // zurück zur Karte der Tour, in der gespielt wurde (bleibt nach dem Neuladen)
   G = null;
@@ -928,7 +976,9 @@ $('#qOpts').onclick = e => {
 };
 $('#qBody').onclick = e => { const p = e.target.closest('[data-play]'); if (p && DATA) { const s = DATA.byId.get(+p.dataset.play); if (active._id === s.i && !active.paused && G?.answered) stopAudio(); else playSong(s); } };
 $('#qNext').onclick = nextQ;
-$('#goNextBtn').onclick = () => { const i = G.idx + 1, t = G.tid; G = null; startStation(t, i); };
+$('#goNextBtn').onclick = () => { if (G?.t.kind === 'advent') { location.href = Advent.calendarUrl(); return; } const i = G.idx + 1, t = G.tid; G = null; startStation(t, i); };
+$('#advStart').onclick = () => Advent.start();
+$('#advShareBtn').onclick = () => Advent.shareImage().catch(() => toast(tx('Das Bild konnte nicht erstellt werden.')));
 $('#againBtn').onclick = () => { const i = G.idx, t = G.tid; G = null; startStation(t, i); };
 $('#mapBtn').onclick = goMap;
 $('#shareBtn').onclick = shareResult;
@@ -970,6 +1020,7 @@ $('#btnResetAll').onclick = async () => {
 };
 self.liveLang = () => {
   if (!$('#home').classList.contains('hidden')) renderHome();
+  if (!$('#advent').classList.contains('hidden')) Advent.showIntro(Advent.door());
   if (sheet.open) { renderSettings(); goPage($('#sheetSettings .page.active')?.dataset.page || 'main'); }
   if (stSheet.open && sheetAt) openStation(...sheetAt);
   if (G && !$('#game').classList.contains('hidden')) {
@@ -994,7 +1045,9 @@ document.addEventListener('keydown', e => {
 addEventListener('resize', () => { if (!$('#home').classList.contains('hidden') && curTour()) renderMap(curTour()); fitClaim(); });
 
 /* ---------- Start ---------- */
-applyTheme(); applyVol(); renderHome();
-{ const t = curTour(); if (t && totalStars(t)) requestAnimationFrame(() => scrollToStation(Math.max(0, openCount(t) - 1))); }   // Neulinge sehen zuerst die Erklärung
+applyTheme(); applyVol();
+// Aus dem Adventskalender der Jukebox (on-tour/?advent=7): gleich das Türchen zeigen
+if (Advent.active) Advent.showIntro();
+else { renderHome(); const t = curTour(); if (t && totalStars(t)) requestAnimationFrame(() => scrollToStation(Math.max(0, openCount(t) - 1))); }   // Neulinge sehen zuerst die Erklärung
 loadData().catch(() => {});
-addEventListener('jukebox-sync', () => { if (!G) renderHome(); if (sheet.open) renderSettings(); });
+addEventListener('jukebox-sync', () => { if (!G) { if (Advent.active) Advent.showIntro(Advent.door()); else renderHome(); } if (sheet.open) renderSettings(); });

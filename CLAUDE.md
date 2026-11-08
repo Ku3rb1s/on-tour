@@ -14,3 +14,6 @@ Künstler-Touren: Liste STARS in scripts/build-data.js, Profile (Alben, Herkunft
 Stationen = Album-Ären (Album je Song laut Deezer, kleine Ären werden zusammengelegt), Farbe je Ära aus dem Cover (js/game.js coverColor), Wissensfragen je Star in scripts/facts.js (nur Fakten, die sich nicht ändern). Fehlen einem Star Songs, ergänzt das Skript seine Deezer-Top-Songs
 (Zwischenspeicher scripts/.cache/deezer-artists.json, ohne Netz: --offline). Sterne in ot.astars, Schlüssel <id>.<Nr.>.
 Logo: `node scripts/logo-options.js <id> > logo.svg`, dann `node scripts/render-icons.js`.
+Adventskalender (Tour-Art advent, js/advent.js): Daten data/advent.json + data/advent-doors.json nur mit `node scripts/build-advent.js` bauen
+(Bericht scripts/.cache/advent-report.txt, Jahre von Hand in YEAR_FIX, Playlists neu: --refresh), dann DATA_V erhöhen. Sterne ot.advent / Serie ot.adventDay
+(Schlüssel <Jahr>.<Tür>), Test-Datum nur lokal mit ?date=YYYY-MM-DD. Kalender und Karte zeigt die Jukebox (Spiele-Hub/js/advent.js).

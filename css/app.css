@@ -334,3 +334,22 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
 /* Wissensfrage: Song ist nur Begleitmusik (nicht der aus der Frage) */
 .song .bg-lbl{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
 .song .a:empty{display:none}
+
+/* ---------- Adventskalender: ein Türchen (js/advent.js) ---------- */
+.adv-intro{text-align:center;position:relative;overflow:hidden}
+.adv-intro::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.5) 0 1.5px,transparent 2px),radial-gradient(circle at 70% 30%,rgba(255,255,255,.4) 0 1px,transparent 1.5px),
+  radial-gradient(circle at 40% 70%,rgba(255,255,255,.35) 0 1.5px,transparent 2px),radial-gradient(circle at 85% 80%,rgba(255,255,255,.4) 0 1px,transparent 1.5px);background-size:120px 120px}
+.adv-back{display:inline-flex;align-items:center;gap:4px;position:relative}
+.adv-door{position:relative;width:118px;height:118px;margin:14px auto 12px;border-radius:22px;display:grid;place-items:center;
+  background:linear-gradient(150deg,#b91c1c,#7f1d1d);box-shadow:0 10px 30px rgba(185,28,28,.35),inset 0 0 0 3px rgba(251,191,36,.55);color:#fff}
+.adv-door b{font-size:3.4rem;font-weight:900;line-height:1}
+.adv-door span{position:absolute;right:-8px;top:-10px;font-size:1.9rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.adv-title{font-size:clamp(1.5rem,6vw,2.1rem)}
+.adv-stars{font-size:2.2rem;min-height:0}
+.adv-stars:empty{display:none}
+.end-stars i.bonus,.adv-stars i.bonus{font-size:.8em;align-self:center}
+.end-stars i.bonus.on,.adv-stars i.bonus.on{color:#fde68a;text-shadow:0 0 22px rgba(253,230,138,.9)}
+.adv-stars i{font-style:normal;color:rgba(255,255,255,.15)}
+.adv-stars i.on{color:var(--gold);text-shadow:0 0 14px rgba(251,191,36,.6)}
+.adv-foot{text-align:center;min-height:1.2em}
