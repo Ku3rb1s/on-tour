@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c0c0f">
+<title>On Tour</title>
+<meta name="description" content="Eine Reise durch die Musikgeschichte: von Memphis 1956 bis heute. An jeder Station sechs kurze Aufgaben mit Musik – sammle Sterne und reise weiter.">
+<link rel="apple-touch-icon" href="https://ku3rb1s.github.io/on-tour/apple-touch-icon.png?v=1">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=1">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=1">
+<link rel="manifest" href="manifest.json?v=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="On Tour">
+<link rel="preload" href="fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/fonts.css?v=2">
+<link rel="stylesheet" href="css/base.css?v=2">
+<link rel="stylesheet" href="css/app.css?v=1">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L19.5 7"/></symbol>
+  <symbol id="i-install" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.75 4.75 0 0 0 7 18.5z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5L12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v5h5"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6a8 8 0 0 1 0 12"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.2-1.6-1.2-2.8 0-1 .8-1.7 1.8-1.7h2.1A4.5 4.5 0 0 0 21 10.3C21 6.2 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M3.5 6.5l5.5-2.5 6 2.5 5.5-2.5v13.5l-5.5 2.5-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<header>
+  <button class="logo logo-btn" id="logoBtn" aria-label="Zur Karte"><img src="icon-192.png?v=1" alt=""><span>On Tour</span></button>
+  <div class="hdr-r">
+    <button class="hbtn hidden" id="btnQuit" aria-label="Station verlassen"><svg class="ic"><use href="#i-x"/></svg><span class="lbl">Beenden</span></button>
+    <button class="hbtn" id="btnSettings" aria-label="Einstellungen"><svg class="ic"><use href="#i-sliders"/></svg><span class="lbl">Einstellungen</span></button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ Karte ============ -->
+  <div id="home">
+    <section class="stage glass tour-head">
+      <div class="cat-kicker" id="tourKicker">Eine Reise durch die Musikgeschichte</div>
+      <div class="home-title">On Tour</div>
+      <div class="tour-prog" id="tourProg" data-no-tx></div>
+      <div class="controls">
+        <button class="big" id="nextBtn"><svg class="ic"><use href="#i-play"/></svg><span id="nextLbl">Los geht’s</span></button>
+      </div>
+      <div class="cat-sub" id="tourSub">An jeder Station laufen Songs aus dieser Zeit. Sechs Aufgaben – ab 3 richtigen gibt es einen Stern, und die nächste Station ist offen.</div>
+    </section>
+
+    <section class="map-wrap" id="mapWrap" aria-label="Karte">
+      <svg class="road" id="road" aria-hidden="true"></svg>
+      <div class="map" id="map" data-no-tx></div>
+    </section>
+  </div>
+
+  <!-- ============ Station ============ -->
+  <section id="game" class="stage glass hidden">
+    <div class="g-head">
+      <span class="pill" id="gStation" data-no-tx></span>
+      <span class="dots" id="gDots" aria-hidden="true"></span>
+    </div>
+    <div class="q-kicker" id="qKind"></div>
+    <div class="q-title" id="qTitle"></div>
+    <div class="q-body" id="qBody" data-no-tx></div>
+    <div class="q-opts" id="qOpts" data-no-tx></div>
+    <div class="q-fact" id="qFact" data-no-tx></div>
+    <div class="controls q-next hidden" id="qNextBox">
+      <button class="big" id="qNext"><span id="qNextLbl">Weiter</span><svg class="ic"><use href="#i-next"/></svg></button>
+    </div>
+    <div class="vol-game" id="volBox">
+      <button id="volMute" aria-label="Stumm" title="Stumm (M)"><svg class="ic"><use href="#i-vol"/></svg></button>
+      <input type="range" id="vol" min="0" max="100" step="1" aria-label="Lautstärke">
+      <span id="volVal"></span>
+    </div>
+    <p class="hint"><kbd>1</kbd>–<kbd>4</kbd> antworten · <kbd>Enter</kbd> weiter · <kbd>M</kbd> stumm</p>
+  </section>
+
+  <!-- ============ Ende einer Station ============ -->
+  <section id="end" class="stage glass hidden">
+    <div class="round-meta"><span class="pill" id="endStation" data-no-tx></span><span class="pill" id="endBest"></span></div>
+    <div class="lib-hero">
+      <div class="cat-kicker" id="endKicker">Station geschafft</div>
+      <div class="end-stars" id="endStars" aria-hidden="true"></div>
+      <div class="lib-num" id="endScore">0</div>
+      <div class="lib-sub" id="endSub"></div>
+    </div>
+    <div class="end-note" id="endNote"></div>
+    <a class="more-link hidden" id="moreLink" href="#" data-no-tx></a>
+    <div class="group-h">Auflösung</div>
+    <div class="group icons endlist" id="endList" data-no-tx></div>
+    <div class="controls" style="margin-top:20px">
+      <button class="big" id="goNextBtn"><span id="goNextLbl">Weiter</span><svg class="ic"><use href="#i-next"/></svg></button>
+      <button class="ghost" id="againBtn"><svg class="ic"><use href="#i-restart"/></svg>Nochmal</button>
+      <button class="ghost" id="mapBtn"><svg class="ic"><use href="#i-map"/></svg>Karte</button>
+    </div>
+  </section>
+</main>
+
+<!-- ============ Station antippen ============ -->
+<dialog id="sheetStation" class="sheet">
+  <div class="sheet-head">
+    <span class="grab"></span>
+    <span></span>
+    <div class="nav-title" id="stTitle" data-no-tx></div>
+    <button class="nav-done" data-close>Fertig</button>
+  </div>
+  <div class="sheet-body">
+    <div class="st-hero" id="stHero" data-no-tx></div>
+    <div class="group" style="margin-top:14px" id="stInfo"></div>
+    <div class="group-f" id="stFoot"></div>
+    <div class="controls" style="margin:18px 0 8px">
+      <button class="big" id="stStart"><svg class="ic"><use href="#i-play"/></svg><span id="stStartLbl">Station starten</span></button>
+    </div>
+  </div>
+</dialog>
+
+<!-- ============ Einstellungen ============ -->
+<dialog id="sheetSettings" class="sheet">
+  <div class="sheet-head">
+    <span class="grab"></span>
+    <button class="nav-back invisible" id="navBack"><svg class="ic"><use href="#i-back"/></svg>Einstellungen</button>
+    <div class="nav-title" id="navTitle">Einstellungen</div>
+    <button class="nav-done" data-close>Fertig</button>
+  </div>
+  <div class="sheet-body">
+    <section class="page active" data-page="main" data-title="Einstellungen">
+      <div class="group icons prof-group" style="margin-top:14px">
+        <div class="cell prof">
+          <button class="prof-emo" id="profEmoji" type="button" aria-label="Avatar wechseln" title="Avatar wechseln">🎧</button>
+          <input id="profName" class="bare" placeholder="Dein Name" maxlength="24" autocomplete="nickname" enterkeyhint="done" data-no-tx>
+        </div>
+      </div>
+      <div class="group-f">Dein Profil gilt für alle Spiele der Jukebox.</div>
+      <div class="group icons" style="margin-top:12px">
+        <a class="cell tap" id="syncLink" href="https://ku3rb1s.github.io/jukebox/#sync">
+          <span class="cell-ic" id="syncIc" style="background:linear-gradient(135deg,#ff4f86,#fbbf24)"><svg class="ic"><use href="#i-cloud"/></svg></span>
+          <span class="grow"><span id="syncTitle">Auf anderen Geräten weiterspielen</span><span class="sub" id="syncSub">Sterne und Profil mit einem Code mitnehmen – ohne E-Mail und Passwort</span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </a>
+      </div>
+      <div class="group icons" style="margin-top:12px">
+        <label class="cell">
+          <span class="cell-ic" style="background:#a855f7"><svg class="ic"><use href="#i-globe"/></svg></span>
+          <span class="grow">Sprache</span>
+          <select id="langSel" aria-label="Sprache"></select>
+        </label>
+      </div>
+      <div class="group icons" style="margin-top:12px">
+        <button class="cell tap" data-go="help">
+          <span class="cell-ic" style="background:#0ea5e9"><svg class="ic"><use href="#i-bulb"/></svg></span>
+          <span class="grow">Töne &amp; Bewegung<span class="sub" id="subHelp"></span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </button>
+        <button class="cell tap" data-go="design">
+          <span class="cell-ic" style="background:linear-gradient(135deg,#8b6cff,#ff4fa3)"><svg class="ic"><use href="#i-palette"/></svg></span>
+          <span class="grow">Design<span class="sub" id="subDesign"></span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </button>
+        <button class="cell tap hidden" id="btnInstall">
+          <span class="cell-ic" style="background:linear-gradient(135deg,#10b981,#0ea5e9)"><svg class="ic"><use href="#i-install"/></svg></span>
+          <span class="grow">Als App installieren<span class="sub">Startet schneller, im Vollbild und mit eigenem Symbol</span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </button>
+      </div>
+      <div class="group icons" style="margin-top:22px">
+        <button class="cell tap" data-go="stats">
+          <span class="cell-ic" style="background:linear-gradient(135deg,#22d3ee,#3b82f6)"><svg class="ic"><use href="#i-chart"/></svg></span>
+          <span class="grow">Deine Statistik<span class="sub" id="subStats"></span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </button>
+        <button class="cell tap" data-go="data">
+          <span class="cell-ic" style="background:#6b7280"><svg class="ic"><use href="#i-music"/></svg></span>
+          <span class="grow">Daten &amp; Musik<span class="sub">Woher Songs und Fakten kommen</span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </button>
+      </div>
+      <div class="group icons" style="margin-top:22px">
+        <a class="cell tap" href="https://ku3rb1s.github.io/jukebox/">
+          <span class="cell-ic" style="background:linear-gradient(135deg,#3a2a52,#ff5a7a)"><svg class="ic"><use href="#i-grid"/></svg></span>
+          <span class="grow">Alle Spiele<span class="sub">Needle Drop, Gold Record, Hit or Miss und mehr</span></span>
+          <svg class="ic chev"><use href="#i-chev"/></svg>
+        </a>
+      </div>
+      <button class="app-version" id="appVersion" data-go="changes"></button>
+    </section>
+
+    <section class="page" data-page="stats" data-title="Deine Statistik">
+      <div id="statsBox"></div>
+    </section>
+
+    <section class="page" data-page="changes" data-title="Neuerungen">
+      <div id="changesList" class="changes"></div>
+    </section>
+
+    <section class="page" data-page="help" data-title="Töne &amp; Bewegung">
+      <div class="group" style="margin-top:14px">
+        <label class="cell"><span class="grow">Töne &amp; Konfetti<span class="sub">Kurze Töne bei richtig und falsch, Konfetti bei drei Sternen</span></span><span class="switch"><input type="checkbox" id="setSfx"><span></span></span></label>
+        <label class="cell"><span class="grow">Vibration<span class="sub">Kurzes Brummen bei einem Fehler (nur auf Handys, die das können)</span></span><span class="switch"><input type="checkbox" id="setVib"><span></span></span></label>
+      </div>
+      <div class="group-f">Die Lautstärke stellst du direkt im Spiel ein. Die Musik startet bei jeder Aufgabe von selbst.</div>
+    </section>
+
+    <section class="page" data-page="design" data-title="Design">
+      <div class="group-h">Farbthema</div>
+      <div class="theme-row" id="themeRow"></div>
+      <div class="group-f">Gilt für alle Spiele der Jukebox. OLED: echtes Schwarz – spart auf Handys mit OLED-Display Akku.</div>
+    </section>
+
+    <section class="page" data-page="data" data-title="Daten &amp; Musik">
+      <div class="group" style="margin-top:14px">
+        <div class="cell"><span class="grow">Musik von Deezer<span class="sub">Die 30-s-Vorschauen und Cover kommen direkt von deezer.com – dafür ruft dein Browser Deezer auf.</span></span></div>
+        <div class="cell"><span class="grow">Songs und Jahre<span class="sub">Aus Gold Record und Hit or Miss. Es kommen nur Songs vor, deren Jahr mit MusicBrainz geprüft ist.</span></span></div>
+        <div class="cell"><span class="grow">Streams<span class="sub" id="streamsInfo">Spotify-Streams von kworb.net. Die Zahlen wachsen – darum gibt es nur „über …“-Fragen.</span></span></div>
+        <div class="cell"><span class="grow">Die Orte sind Stimmung<span class="sub">Die Songs einer Station kommen aus ihrer Zeit und passen nach Möglichkeit zum Thema – nicht jeder Song stammt aus dieser Stadt.</span></span></div>
+        <div class="cell"><span class="grow">Alles andere bleibt hier<span class="sub">Sterne und Einstellungen liegen nur auf diesem Gerät. Kein Konto, kein Server.</span></span></div>
+      </div>
+      <div class="group" style="margin-top:22px">
+        <button class="cell tap danger" id="btnResetAll"><span class="grow">Alle gespeicherten Daten löschen<span class="sub">Sterne, Statistik und Einstellungen</span></span></button>
+      </div>
+    </section>
+  </div>
+</dialog>
+
+<dialog id="askDlg" class="ask">
+  <p id="askText" data-no-tx></p>
+  <div class="ask-btns"><button class="ghost" id="askNo">Abbrechen</button><button class="big" id="askOk" data-no-tx></button></div>
+</dialog>
+
+<div id="loading" class="loading hidden"><div class="loader"></div><p id="loadingTxt">Lade Songs…</p></div>
+<div id="toast" class="hidden"></div>
+
+<script src="js/lang/en.js?v=1"></script>
+<script src="js/lang/fr.js?v=1"></script>
+<script src="js/lang/es.js?v=1"></script>
+<script src="js/lang/nb.js?v=1"></script>
+<script src="js/profile.js?v=2"></script>
+<script src="js/sync.js?v=2"></script>
+<script src="js/i18n.js?v=2"></script>
+<script src="js/deezer.js?v=1"></script>
+<script src="js/stations.js?v=1"></script>
+<script src="js/game.js?v=1"></script>
+<script src="js/pwa.js?v=2"></script>
+</body>
+</html>
