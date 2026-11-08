@@ -213,6 +213,7 @@ function encode(q) {
     case 'rec': return { k: 'rec', s: ref(q.s), o: q.o.map(ref) };
     case 'old': return { k: 'old', a: ref(q.a), b: ref(q.b) };
     case 'who': case 'feat': return { k: q.k, s: ref(q.s), o: q.o, ...(q.A ? { A: q.A } : {}) };
+    case 'fact': return { k: 'fact', s: ref(q.s), q: q.q, o: q.o };
     case 'year': return { k: 'year', s: ref(q.s), o: q.o };
     case 'claim': {
       const c = q.c, o = { k: c.k, ok: c.ok };
@@ -228,6 +229,7 @@ const fmtQ = q => {
     case 'rec': return `ERKENNEN  ${t(q.s)}  ✗ ${q.o.map(o => o.T).join(' · ')}`;
     case 'old': return `ÄLTER     ${t(q.a)} vs ${t(q.b)}`;
     case 'who': return `WER       ${t(q.s)}  ✗ ${q.o.join(' · ')}`;
+    case 'fact': { const t1 = o => typeof o === 'string' ? o : o.de; return `WISSEN    ${q.q.de}  ✓ ${t1(q.o[0])}  ✗ ${q.o.slice(1).map(t1).join(' · ')}  [♪ ${q.s.T}]`; }
     case 'feat': return `MIT WEM   ${t(q.s)}  ✓ ${q.A}  ✗ ${q.o.join(' · ')}`;
     case 'year': return `JAHR      ${t(q.s)}  ✗ ${q.o.join(' · ')}`;
     case 'claim': { const c = q.c; return `${c.ok ? 'STIMMT    ' : 'STIMMT NI.'} ${t(q.s)}: ` + ({ artist: `ist von ${c.A}`, title: `heißt »${c.T}«`, streams: `über ${(c.n / 1000)} Mrd. Streams [${(q.s.n / 1000).toFixed(2)}]`, older: `ist ${c.cmp === 'older' ? 'älter' : 'neuer'} als ${c.o && t(c.o)}` }[c.k]); }
@@ -281,7 +283,9 @@ function buildTour(name, opt) {
    Diese Songs haben kein geprüftes Jahr – sie kommen nur bei „Welcher Song?“ und „Mit wem?“ vor, nie bei Jahres-Fragen.
    Ohne Netz: node scripts/build-data.js --offline (nimmt nur den Zwischenspeicher). */
 const STARS = ['The Beatles', 'Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Linkin Park', 'Coldplay', 'Beyoncé', 'Rihanna', 'Shakira',
-  'Lady Gaga', 'David Guetta', 'Avicii', 'Bruno Mars', 'Ed Sheeran', 'Taylor Swift', 'The Weeknd', 'Drake', 'Billie Eilish', 'Bad Bunny'];
+  'Lady Gaga', 'David Guetta', 'Avicii', 'Kygo', 'Bruno Mars', 'Ed Sheeran', 'Taylor Swift', 'The Weeknd', 'Drake', 'Billie Eilish', 'Bad Bunny',
+  '50 Cent', 'Justin Bieber', 'Travis Scott', 'Post Malone', 'Juice WRLD'];
+const FACTS = require('./facts.js');   // Wissensfragen je Star (von Hand, recherchiert)
 const WANT_SONGS = 24, OFFLINE = process.argv.includes('--offline');
 const slug = a => String(a).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const DZ_CACHE = path.join(__dirname, '.cache', 'deezer-artists.json');
@@ -370,10 +374,10 @@ async function buildArtist(name) {
       claim: s => { if (s.dz || !s.n) return null; const c = HM.GEN.streams(s, R() < .55, h, R); if (!c) return null; c.s = s; c.hide = null; return HM.verify(c) ? { k: 'claim', s, c } : null; },
       year: s => { if (s.dz) return null; const o = falseYears(s, R); return o ? { k: 'year', s, o } : null; },
     };
-    const CAP = { rec: 3, old: 2, feat: 2, claim: 2, year: 2 }, qs = [], prim = new Set(), count = {};
+    const CAP = { rec: 3, old: 2, feat: 2, claim: 2, year: 2 }, CAP2 = { rec: 6, old: 3, feat: 3, claim: 2, year: 2 }, qs = [], prim = new Set(), count = {};
     // erst jeder Song höchstens einmal, dann darf ein Song eine zweite (andere) Aufgabe tragen, bis 8–10 Aufgaben da sind
-    for (const pass of [0, 1]) for (const kind of ['rec', 'old', 'feat', 'claim', 'year']) for (const s of shuffle(chunk, R)) {
-      if (qs.length >= 10 || (count[kind] || 0) >= CAP[kind] || (pass === 1 && qs.length >= 8)) break;
+    for (const pass of [0, 1]) for (const kind of pass ? ['old', 'feat', 'claim', 'year', 'rec'] : ['rec', 'old', 'feat', 'claim', 'year']) for (const s of shuffle(chunk, R)) {
+      if (qs.length >= 10 || (count[kind] || 0) >= (pass ? CAP2 : CAP)[kind] || (pass === 1 && qs.length >= 8)) break;
       if (pass === 0 ? prim.has(s.i) : qs.some(q => q.k === kind && (q.s || q.a) === s)) continue;
       const q = make[kind](s); if (!q) continue;
       qs.push(q); prim.add(s.i); count[kind] = (count[kind] || 0) + 1;
@@ -381,6 +385,19 @@ async function buildArtist(name) {
     const ys = chunk.map(s => s.y);
     return { y: [Math.min(...ys), Math.max(...ys)], qs };
   });
+  // Wissensfragen (scripts/facts.js) an die Stationen hängen.
+  // Dabei läuft der genannte Song – oder ein bekannter Song des Stars, der nicht unter den Antworten steht.
+  const optTxt = o => typeof o === 'string' ? [o] : Object.values(o), placed = [];
+  for (const fq of FACTS[name] || []) {
+    const words = fq.o.flatMap(optTxt).map(x => HM.words(x));
+    const safe = x => !words.some(w => w.includes(HM.words(x.T)));
+    const song = all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
+    if (!song) { L.push(`  ⚠️ ${name}: kein Song für „${fq.q.de}“`); continue; }
+    if (song.tk !== HM.titleKey(fq.s)) L.push(`  ↪ ${name}: „${fq.s}“ nicht da – dazu läuft „${song.T}“`);
+    placed.push({ k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y });
+  }
+  // nach Jahr geordnet gleichmäßig auf die Stationen verteilt (sonst hätten frühe Stationen alle Fragen)
+  placed.sort((x, y) => x.y - y.y).forEach((q, i) => { delete q.y; stations[Math.floor(i * stations.length / placed.length)].qs.push(q); });
   const top = all.filter(s => s.ak === k && s.c && !s.dz).sort((a, b) => a.f - b.f)[0] || all[0];
   return { id: slug(name), A: name, c: top?.c || '', c0: top?.c0 || 0, songs: all.length, dzSongs: all.filter(s => s.dz).length, stations };
 }
@@ -425,7 +442,7 @@ async function buildArtist(name) {
   }
   for (const a of artistsOut) a.st.forEach((st, i) => {
     const k = new Set(st.q.map(q => q.k));
-    if (st.q.length < 6 || k.size < 3) problems.push(`Künstler ${a.A} / Station ${i + 1}: nur ${st.q.length} Aufgaben (${[...k].join(', ')})`);
+    if (st.q.length < 6 || k.size < 2) problems.push(`Künstler ${a.A} / Station ${i + 1}: nur ${st.q.length} Aufgaben (${[...k].join(', ')})`);
   });
   const head = [`On Tour – Datenpaket ${out.built} (Streams Stand ${HOM.streamsAt})`,
     `Songs im Pool: ${tracks.length} (davon ${addedDe} deutsche aus Gold Record dazu) · im Paket: ${songs.length} · Künstler: ${artistsOut.length} · Datei ${(Buffer.byteLength(json) / 1024).toFixed(0)} KB`, ''];

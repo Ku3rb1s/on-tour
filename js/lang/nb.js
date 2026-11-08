@@ -230,6 +230,7 @@
     "Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre": "Hvilken sang?, Hvilken kom først?, Med hvem?, strømminger og år",
     "Wer ist das?": "Hvem er det?",
     "Wer singt das?": "Hvem synger dette?",
+    "Wissen": "Kunnskap",
     "Woher Songs und Fakten kommen": "Hvor sanger og fakta kommer fra",
     "Zeit abgelaufen": "Tiden er ute",
     "Zum Ergebnis": "Til resultatet",

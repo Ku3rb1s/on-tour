@@ -230,6 +230,7 @@
     "Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre": "Which song?, Which came first?, With whom?, streams and years",
     "Wer ist das?": "Who is it?",
     "Wer singt das?": "Who sings this?",
+    "Wissen": "Trivia",
     "Woher Songs und Fakten kommen": "Where songs and facts come from",
     "Zeit abgelaufen": "Time’s up",
     "Zum Ergebnis": "See result",

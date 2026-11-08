@@ -10,6 +10,6 @@ Songdaten: `data/tour.json` nur mit `node scripts/build-data.js` bauen (liest Hi
 `scripts/.cache/report.txt` überfliegen und `DATA_V` in `js/game.js` erhöhen. Die Behauptungen prüft `../Hit-or-Miss/js/claims.js`.
 Bestehende Stationen bleiben dabei gleich (nur Stationen mit verschwundenen Songs oder veralteten Behauptungen werden neu gebaut);
 alles neu auswählen: `node scripts/build-data.js --neu`.
-Künstler-Touren: Liste STARS in scripts/build-data.js. Fehlen einem Star Songs, ergänzt das Skript seine Deezer-Top-Songs
+Künstler-Touren: Liste STARS in scripts/build-data.js, Wissensfragen je Star in scripts/facts.js (nur Fakten, die sich nicht ändern). Fehlen einem Star Songs, ergänzt das Skript seine Deezer-Top-Songs
 (Zwischenspeicher scripts/.cache/deezer-artists.json, ohne Netz: --offline). Sterne in ot.astars, Schlüssel <id>.<Nr.>.
 Logo: `node scripts/logo-options.js <id> > logo.svg`, dann `node scripts/render-icons.js`.

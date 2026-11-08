@@ -230,6 +230,7 @@
     "Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre": "¿Qué canción?, ¿Cuál primero?, ¿Con quién?, reproducciones y años",
     "Wer ist das?": "¿Quién es?",
     "Wer singt das?": "¿Quién la canta?",
+    "Wissen": "Cultura musical",
     "Woher Songs und Fakten kommen": "De dónde vienen las canciones y los datos",
     "Zeit abgelaufen": "Se acabó el tiempo",
     "Zum Ergebnis": "Ver resultado",

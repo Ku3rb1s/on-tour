@@ -230,6 +230,7 @@
     "Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre": "Quelle chanson ?, Laquelle d’abord ?, Avec qui ?, streams et années",
     "Wer ist das?": "C’est qui ?",
     "Wer singt das?": "Qui chante ça ?",
+    "Wissen": "Culture musicale",
     "Woher Songs und Fakten kommen": "D’où viennent chansons et faits",
     "Zeit abgelaufen": "Temps écoulé",
     "Zum Ergebnis": "Voir le résultat",

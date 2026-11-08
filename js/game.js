@@ -5,7 +5,7 @@
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
 const APP_VERSION = '1.0.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd2';
+const DATA_V = 'd3';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -30,8 +30,11 @@ const KIND = {
   who: ['Gold-Frage', 'Wer singt das?'],
   year: ['Gold-Frage', 'Aus welchem Jahr ist der Song?'],
   feat: ['Mit wem?', 'Mit wem singt {a} hier?'],
+  fact: ['Wissen', ''],   // Wissensfragen zu den Stars (scripts/facts.js) – die Frage selbst steht in den Daten, in 5 Sprachen
 };
-const KIND_NAMES = { rec: 'Erkennen', old: 'Älter oder neuer', claim: 'Hit or Miss', gold: 'Gold-Frage', feat: 'Mit wem?' };
+// Text einer Wissensfrage oder Antwort: ein Text für alle Sprachen oder { de, en, fr, es, nb }
+const inLang = o => typeof o === 'string' ? o : (o[curLang] || o.de);
+const KIND_NAMES = { rec: 'Erkennen', old: 'Älter oder neuer', claim: 'Hit or Miss', gold: 'Gold-Frage', feat: 'Mit wem?', fact: 'Wissen' };
 
 // Gespeichert wird mit „ot.“ vorne – alle Spiele teilen sich den Browser-Speicher von ku3rb1s.github.io
 const LS = {
@@ -206,7 +209,7 @@ function pickQuestions(pool) {
   const fits = q => songsOfQ(q).every(i => !used.has(i));
   const take = q => { out.push(q); songsOfQ(q).forEach(i => used.add(i)); };
   const rest = shuffle(pool);
-  for (const g of shuffle(['rec', 'old', 'claim', 'gold', 'feat'])) { const q = rest.find(x => groupOf(x) === g && !out.includes(x) && fits(x)); if (q) take(q); }
+  for (const g of shuffle(['rec', 'old', 'claim', 'gold', 'feat', 'fact'])) { const q = rest.find(x => groupOf(x) === g && !out.includes(x) && fits(x)); if (q) take(q); }
   for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q) && fits(q)) take(q); }
   for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q)) take(q); }   // notfalls doch ein Song doppelt
   return shuffle(out.slice(0, Q_PER_STATION));
@@ -218,6 +221,7 @@ function kindText(q) {
   if (a && q.k === 'old') return [KIND.old[0], tx('Was kam zuerst?')];
   if (q.k === 'feat') return [KIND.feat[0], tx('Mit wem singt {a} hier?', { a: a || '' })];
   if (a && q.k === 'claim') return [tx('Streams'), tx(KIND.claim[1])];
+  if (q.k === 'fact') return [tx(KIND.fact[0]), inLang(q.q)];
   return [tx(KIND[q.k][0]), tx(KIND[q.k][1])];
 }
 
@@ -236,6 +240,7 @@ async function startStation(tid, idx) {
     if (q.k === 'rec') return { ...q, opts: shuffle([q.s, ...q.o]) };
     if (q.k === 'who') return { ...q, opts: shuffle([DATA.S[q.s].A, ...q.o]) };
     if (q.k === 'feat') return { ...q, opts: shuffle([q.A, ...q.o]) };
+    if (q.k === 'fact') return { ...q, opts: shuffle([0, 1, 2, 3]) };   // Nr. der Antwort, 0 = richtig
     if (q.k === 'year') return { ...q, opts: [DATA.S[q.s].y, ...q.o].sort((a, b) => a - b) };
     if (q.k === 'old') return Math.random() < .5 ? { ...q, a: q.b, b: q.a } : q;
     return q;
@@ -268,6 +273,7 @@ function renderQ() {
   const [kicker, title] = kindText(q);
   $('#qKind').textContent = kicker + ' · ' + tx('Aufgabe {n} von {m}', { n: G.n + 1, m: G.qs.length });
   $('#qTitle').textContent = title;
+  $('#qTitle').classList.toggle('long', title.length > 60);   // Wissensfragen sind länger
   $('#qFact').innerHTML = '';
   $('#qNextBox').classList.add('hidden');
   renderDots();
@@ -284,6 +290,9 @@ function renderQ() {
     // Mit wem? – der Titel steht da, die Interpreten nicht (sonst stünde die Antwort schon da)
     body.innerHTML = songCard(s, { aTxt: `${esc(G.t.artist.A)} &amp; <span class="qm">?</span>` });
     opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
+  } else if (q.k === 'fact') {
+    body.innerHTML = songCard(s);
+    opts.innerHTML = q.opts.map((i, k) => optBtn(i, k, inLang(q.o[i]))).join('');
   } else if (q.k === 'year') {
     body.innerHTML = songCard(s);
     opts.className = 'q-opts years';
@@ -325,6 +334,7 @@ function rightOf(q) {
   if (q.k === 'rec') return String(q.s);
   if (q.k === 'who') return s.A;
   if (q.k === 'feat') return q.A;
+  if (q.k === 'fact') return '0';
   if (q.k === 'year') return String(s.y);
   if (q.k === 'claim') return q.c.ok ? '1' : '0';
   if (q.k === 'old') { const a = DATA.S[q.a], b = DATA.S[q.b]; return String(a.y < b.y ? a.i : b.i); }
@@ -348,7 +358,7 @@ function answer(v) {
   // Erkennen: kein zweiter Titel oben (steht schon im grünen Knopf) – nur das Cover erscheint in der Mitte der Platte
   if (q.k === 'rec') { const l = $('#qBody .vinyl .lbl'), img = cover(s, 250); if (l && img) { l.style.backgroundImage = `url("${img}")`; l.classList.add('cov'); } $('#qBody .tap-hint')?.remove(); }
   else if (q.k === 'who' || q.k === 'claim' || q.k === 'feat') { const t = $('#qBody .song .t'), a = $('#qBody .song .a'); if (t) t.textContent = s.T; if (a) a.textContent = s.a0; }
-  const fact = q.k === 'claim' ? `<b>${esc(s.T)}</b> ${factHtml(q.c, s)}` : q.k === 'old' ? '' : `<b>${esc(s.T)}</b> · ${esc(s.a0)}${yTxt(s)}`;
+  const fact = q.k === 'fact' ? `<b>${esc(inLang(q.o[0]))}</b>` : q.k === 'claim' ? `<b>${esc(s.T)}</b> ${factHtml(q.c, s)}` : q.k === 'old' ? '' : `<b>${esc(s.T)}</b> · ${esc(s.a0)}${yTxt(s)}`;
   $('#qFact').innerHTML = `<span class="${ok ? 'good' : 'wrong'}">${ok ? '✓ ' + tx('Richtig!') : v == null ? '⏱ ' + tx('Zeit abgelaufen') : '✗ ' + tx('Daneben!')}</span> ${fact}`;
   $('#game').classList.remove('ok', 'bad'); void $('#game').offsetWidth; $('#game').classList.add(ok ? 'ok' : 'bad');
   sound(ok ? 'ok' : 'miss');
@@ -411,6 +421,7 @@ function renderEndList() {
     let line = '';
     if (q.k === 'claim') line = `„${claimHtml(q.c)}“ → ${q.c.ok ? tx('stimmt') : tx('stimmt nicht')}<span class="fact-line">${factHtml(q.c, s)}</span>`;
     else if (q.k === 'old') { const b = DATA.S[q.b], a = DATA.S[q.a]; line = tx('Älter: {t}', { t: `<b>${esc((a.y < b.y ? a : b).T)}</b>` }) + ` · ${esc(a.T)} ${a.y} · ${esc(b.T)} ${b.y}`; }
+    else if (q.k === 'fact') line = esc(inLang(q.q)) + ' → ' + `<b>${esc(inLang(q.o[0]))}</b>`;
     else line = kindText(q)[1] + ' → ' + `<b>${esc(rightOf(q) === String(q.s) ? s.T : rightOf(q))}</b>`;
     return `<div class="cell res ${l.ok ? 'ok' : 'bad'}" data-song="${s.i}" data-play="${s.i}">
       <span class="res-cv">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<span class="eq"><i></i><i></i><i></i></span></span>
