@@ -318,6 +318,7 @@ async function songsOfStar(name) {
   const firstYear = Math.min(...list.filter(s => s.q >= 1).map(s => s.y));
   // gleichnamige Interpreten (es gibt mehrere „Queen“): der mit den meisten Fans – von dort auch das Profilbild
   const found = ((await dz('/search/artist?q=' + encodeURIComponent(name) + '&limit=10'))?.data || []).filter(a => HM.key(a.name) === k).sort((a, b) => b.nb_fan - a.nb_fan)[0];
+  list.aid = found?.id;
   list.pic = String(found?.picture_medium || '').match(/images\/artist\/([0-9a-f]{32})\//)?.[1] || '';
   if (list.length < WANT_SONGS) {
     const top = found ? (await dz(`/artist/${found.id}/top?limit=100`))?.data || [] : [];
@@ -332,7 +333,7 @@ async function songsOfStar(name) {
       // ältere Stars: Deezer hat fast nur Neuausgaben (Jahr der Neuausgabe) – darum dort kein Jahr
       if (!alb || !['album', 'single', 'ep'].includes(alb.record_type) || NOT_ORIGINAL.test(alb.title) || y < firstYear - 1 || firstYear < 1995) y = 0;
       const contrib = (t.contributors || []).map(c => c.name);
-      list.push({ i: t.id, t: t.title, T, A: t.artist.name, a0: t.artist.name, ak: HM.key(t.artist.name), tk, y, ylo: y, yhi: y, q: 0, dz: true, n: 0,
+      list.push({ i: t.id, alb: t.album?.title || '', t: t.title, T, A: t.artist.name, a0: t.artist.name, ak: HM.key(t.artist.name), tk, y, ylo: y, yhi: y, q: 0, dz: true, n: 0,
         c: t.album.md5_image || '', parts: [t.artist.name, ...contrib], v: [], multi: false, reissue: false, f: 500 });
     }
   }
@@ -350,6 +351,9 @@ function guestsOf(s, k) {
   }
   return out;
 }
+const PROFILES = require('./artists.js');   // Alben, Herkunft, Fans je Star
+// Albumtitel vergleichbar machen: ohne Zusätze in Klammern/nach Bindestrich; Ed Sheerans Zeichen (+, x, ÷ …) bleiben
+const albumKey = t => { const s = String(t).replace(/\s*[([].*?[)\]]/g, '').replace(/\s+[-–—]\s+.*$/, '').trim(); return HM.key(s) || s.toLowerCase(); };
 const STAR_NAME = new Map(STARS.map(n => [HM.key(n), n]));
 const notSameTitle = (x, s) => x !== s && x.tk !== s.tk && !HM.words(x.T).includes(HM.words(s.T)) && !HM.words(s.T).includes(HM.words(x.T));
 const uniqBy = (arr, f) => arr.filter((x, i) => arr.findIndex(y => f(y) === f(x)) === i);
@@ -357,17 +361,36 @@ const uniqBy = (arr, f) => arr.filter((x, i) => arr.findIndex(y => f(y) === f(x)
 async function buildArtist(name) {
   const k = HM.key(name), R = HM.seeded('ontour-artist-' + k);
   const all = await songsOfStar(name);
-  // Karriere nach Jahr in 3–5 gleich große Abschnitte – nur Songs mit sicherem Jahr (geprüft oder Original-Album bei Deezer)
-  const dated = all.filter(s => s.q >= 1 || (s.dz && s.y)).sort((a, b) => a.y - b.y || a.f - b.f);
-  const nSt = Math.max(3, Math.min(8, Math.floor(dated.length / 6)));   // etwa 6 Songs je Station, 3–8 Stationen
-  const chunks = Array.from({ length: nSt }, (_, i) => dated.slice(Math.round(i * dated.length / nSt), Math.round((i + 1) * dated.length / nSt)));
+  // Karriere in Ären: Jeder Song kommt zu dem Album, auf dem er bei Deezer liegt (Titel ohne „Deluxe“, „Remastered“ …);
+  // liegt er nur auf einer Single oder einem Best-of, zum letzten Album vor seinem Jahr. Ären mit weniger als 5 Songs werden
+  // mit der vorigen (bei der ersten: der nächsten) zusammengelegt, höchstens 10 Stationen.
+  const prof = PROFILES[name];
+  const albums = prof.albums.map(([t, y]) => ({ t, y, key: albumKey(t) }));
+  for (const s of all) {
+    if (!s.dz) s.alb = (await dz('/track/' + s.i))?.album?.title || '';
+    const ak = albumKey(s.alb || '');
+    // nur exakt gleicher Titel – sonst würde ein Best-of wie „Queen Forever“ zum Album „Queen“ zählen
+    const hit = ak && albums.find(a => ak === a.key);
+    // ergänzter Deezer-Song, der eindeutig auf einem Studioalbum liegt: bekommt dessen (geprüftes) Jahr und taugt auch für Jahresfragen
+    if (s.dz && hit) { s.y = s.ylo = s.yhi = hit.y; s.q = 1; s.ay = true; }
+    const y = s.q >= 1 || s.dz ? s.y : 0;
+    s.era = hit || (y ? [...albums].reverse().find(a => a.y <= y) || albums[0] : null);
+  }
+  let eras = albums.map(a => ({ albums: [a], songs: all.filter(s => s.era === a) }));
+  // mit dem kleineren Nachbarn zusammenlegen – sonst wüchse vorn eine Riesen-Ära
+  const merge = i => { const p = eras[i - 1], n = eras[i + 1], j = !p ? i + 1 : !n ? i - 1 : p.songs.length <= n.songs.length ? i - 1 : i + 1; const [x, y] = [eras[Math.min(i, j)], eras[Math.max(i, j)]]; eras.splice(Math.min(i, j), 2, { albums: [...x.albums, ...y.albums], songs: [...x.songs, ...y.songs] }); };
+  // zu klein: unter 5 Songs oder unter 2 Songs mit geprüftem Jahr (ergänzte Deezer-Songs taugen nur für „Welcher Song?“ und „Mit wem?“)
+  const small = e => e.songs.length < 5 || e.songs.filter(s => !s.dz || s.ay).length < 2;
+  for (let i = eras.findIndex(small); i >= 0 && eras.length > 1; i = eras.findIndex(small)) merge(i);
+  while (eras.length > 10) { let m = 0; eras.forEach((e, i) => { if (e.songs.length < eras[m].songs.length) m = i; }); merge(m); }
+  const chunks = eras.map(e => e.songs.sort((a, b) => a.y - b.y || a.f - b.f)), nSt = chunks.length;
   const allGuests = uniqBy(all.flatMap(s => guestsOf(s, k)), HM.key);   // falsche Gäste: andere Gäste des Stars …
   const stations = chunks.map((chunk, ci) => {
     const h = .3 + .4 * ci / Math.max(1, nSt - 1);
     // alle möglichen Aufgaben je Song
     const make = {
       rec: s => { const o = uniqBy(shuffle(all.filter(x => notSameTitle(x, s)), R), x => x.tk).slice(0, 3); return o.length === 3 ? { k: 'rec', s, o } : null; },
-      old: s => { if (s.dz || !yearOk(s)) return null; const b = shuffle(all.filter(x => !x.dz && x !== s && orderOk(s, x, 2)), R)[0]; return b ? { k: 'old', a: s, b } : null; },
+      old: s => { if ((s.dz && !s.ay) || !yearOk(s)) return null; const b = shuffle(all.filter(x => (!x.dz || x.ay) && x !== s && orderOk(s, x, 2)), R)[0]; return b ? { k: 'old', a: s, b } : null; },
       feat: s => {
         const g = guestsOf(s, k); if (!g.length) return null;
         const pool = shuffle([...allGuests, ...(s.dz ? [] : falseArtists(s, 3, .6, R) || [])], R)   // … und bekannte Interpreten aus der Zeit
@@ -376,7 +399,7 @@ async function buildArtist(name) {
         return o.length === 3 ? { k: 'feat', s, A: g[0], o } : null;
       },
       claim: s => { if (s.dz || !s.n) return null; const c = HM.GEN.streams(s, R() < .55, h, R); if (!c) return null; c.s = s; c.hide = null; return HM.verify(c) ? { k: 'claim', s, c } : null; },
-      year: s => { if (s.dz) return null; const o = falseYears(s, R); return o ? { k: 'year', s, o } : null; },
+      year: s => { if (s.dz && !s.ay) return null; const o = falseYears(s, R); return o ? { k: 'year', s, o } : null; },
     };
     const CAP = { rec: 3, old: 2, feat: 2, claim: 2, year: 2 }, CAP2 = { rec: 6, old: 3, feat: 3, claim: 2, year: 2 }, qs = [], prim = new Set(), count = {};
     // erst jeder Song höchstens einmal, dann darf ein Song eine zweite (andere) Aufgabe tragen, bis 8–10 Aufgaben da sind
@@ -386,8 +409,8 @@ async function buildArtist(name) {
       const q = make[kind](s); if (!q) continue;
       qs.push(q); prim.add(s.i); count[kind] = (count[kind] || 0) + 1;
     }
-    const ys = chunk.map(s => s.y);
-    return { y: [Math.min(...ys), Math.max(...ys)], qs };
+    const ys = eras[ci].albums.map(a => a.y);
+    return { y: [Math.min(...ys), Math.max(...ys)], al: eras[ci].albums.map(a => a.t), ay: eras[ci].albums.map(a => a.y), qs };
   });
   // Wissensfragen (scripts/facts.js) an die Stationen hängen.
   // Dabei läuft der genannte Song – oder ein bekannter Song des Stars, der nicht unter den Antworten steht.
@@ -401,7 +424,18 @@ async function buildArtist(name) {
     placed.push({ k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y });
   }
   // nach Jahr geordnet gleichmäßig auf die Stationen verteilt (sonst hätten frühe Stationen alle Fragen)
-  placed.sort((x, y) => x.y - y.y).forEach((q, i) => { delete q.y; stations[Math.floor(i * stations.length / placed.length)].qs.push(q); });
+  // zur Ära, in deren Jahre die Frage fällt (sonst die nächstliegende)
+  for (const q of placed) { const d = st => q.y < st.y[0] ? st.y[0] - q.y : q.y > st.y[1] ? q.y - st.y[1] : 0; stations.reduce((b, st) => d(st) < d(b) ? st : b, stations[0]).qs.push(q); delete q.y; }
+  // Cover des (ersten) Albums jeder Ära – Deezer-Suche nach Album beim selben Interpreten
+  for (const st of stations) {
+    for (const al of st.al) {   // erstes Album der Ära, das es beim Star selbst gibt (Gemeinschaftsalben laufen oft unter dem anderen)
+      const want = albumKey(al);
+      const res = (await dz('/search/album?q=' + encodeURIComponent(`${name} ${al}`) + '&limit=25'))?.data || [];
+      const hit = res.find(r => r.artist?.id === all.aid && albumKey(r.title) === want);
+      st.ac = String(hit?.cover_medium || '').match(/images\/cover\/([0-9a-f]{32})\//)?.[1] || '';
+      if (st.ac) break;
+    }
+  }
   const top = all.filter(s => s.ak === k && s.c && !s.dz).sort((a, b) => a.f - b.f)[0] || all[0];
   return { id: slug(name), A: name, pic: all.pic, c: top?.c || '', c0: top?.c0 || 0, songs: all.length, dzSongs: all.filter(s => s.dz).length, stations };
 }
@@ -415,7 +449,8 @@ async function buildArtist(name) {
   L.push('════ Künstler-Touren ════');
   for (const name of STARS) {
     const a = await buildArtist(name);
-    artistsOut.push({ id: a.id, A: a.A, ...(a.pic ? { p: a.pic } : {}), c: a.c, ...(a.c0 ? { c0: a.c0 } : {}), st: a.stations.map(st => ({ y: st.y, q: st.qs.map(encode) })) });
+    const pr = Object.fromEntries(Object.entries(PROFILES[name]).filter(([k]) => k !== 'albums'));   // Herkunft, Namen, Fans für den Kopf der Tour
+    artistsOut.push({ id: a.id, A: a.A, pr, ...(a.pic ? { p: a.pic } : {}), c: a.c, ...(a.c0 ? { c0: a.c0 } : {}), st: a.stations.map(st => ({ y: st.y, al: st.al, ay: st.ay, ...(st.ac ? { ac: st.ac } : {}), q: st.qs.map(encode) })) });
     L.push(`--- ${name}: ${a.songs} Songs (davon ${a.dzSongs} von Deezer ergänzt) · ${a.stations.length} Stationen`);
     a.stations.forEach((st, i) => {
       const kinds = st.qs.reduce((m, q) => (m[q.k] = (m[q.k] || 0) + 1, m), {});

@@ -1,5 +1,13 @@
 # Neuerungen
 
+## 1.1.0 – 08.11.2026
+- Künstler-Touren persönlicher: Die Stationen sind jetzt die Ären der Karriere – benannt nach den Alben, mit Album-Cover (z. B. Linkin Park: Hybrid Theory, Meteora, Minutes to Midnight …)
+- Jede Tour hat einen eigenen Kopf: Foto, Herkunft, Band-Mitglieder oder bürgerlicher Name, Spitzname und Fans – nur Belegtes
+- Eigene Farbe je Star, aus seinem Foto berechnet
+- Eigener Erfolg je Star (benannt nach den Fans, z. B. Swifties, BeyHive, Little Monsters – oder nach einem seiner Songs)
+- Am Ende einer Station: „Meteora“ geschafft, neue Ära offen, und bei allen 6 richtig ein Gruß an die Fans
+- Auch die älteren Stars (Beatles, Queen, ABBA, Michael Jackson) haben jetzt 4–5 Stationen
+
 ## 1.0.3 – 08.11.2026
 - Künstler-Auswahl: Fotos der Stars (Profilbild bei Deezer) statt Albumcover
 

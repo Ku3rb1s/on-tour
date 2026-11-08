@@ -294,3 +294,18 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
 /* Sortierung der Stars */
 .artist-sort{margin:14px 0 0;display:flex}
 .artist-sort button{flex:1;font-size:.82rem;padding:.5em .6em}
+/* Kopf einer Künstler-Tour: Foto, Herkunft, Namen, Fans */
+.tour-pic{display:block;width:112px;height:112px;margin:8px auto 2px;border-radius:50%;object-fit:cover;
+  box-shadow:0 0 0 3px var(--teal),0 0 34px -6px var(--teal),0 16px 34px -14px #000}
+.tour-info{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;margin:6px auto 4px;max-width:34em;font-size:.86rem;color:var(--muted);line-height:1.35}
+.tour-info span{overflow-wrap:anywhere}
+.artist-mode .cat-kicker{color:var(--teal2)}
+.a-ach{padding:0;overflow:hidden}.a-ach img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+/* Künstler-Tour: jede Ära in der Farbe ihres Albumcovers */
+.artist-mode .stn:not(.locked) .dot{border-color:var(--sc,var(--gold))}
+.artist-mode .stn.next .dot,.artist-mode .stn.cur .dot{animation:none;box-shadow:0 0 0 6px color-mix(in srgb,var(--sc,var(--gold)) 30%,transparent),0 10px 24px -10px #000}
+/* lange Ären-Namen (z. B. „Queen · A Day at the Races · News of the World“) passen in die Kopfzeile */
+#end .round-meta{min-width:0}
+#end .round-meta .pill{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#end .round-meta .pill:first-child{flex:1 1 auto}
+#end .round-meta .pill:last-child{flex:none}

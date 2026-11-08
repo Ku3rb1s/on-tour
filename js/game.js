@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.0.3', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.1.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd6';
+const DATA_V = 'd7';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -75,10 +75,64 @@ function tourOf(id = 'main') {
   if (!a) return null;
   return {
     id, kind: 'artist', key: 'astars', artist: a,
-    stations: a.st.map((st, i) => ({ sid: `${a.id}.${i + 1}`, icon: '🎤', img: stImg(st), name: () => tx('Station {n}', { n: i + 1 }),
-      label: () => `${a.A} · ${tx('Station {n}', { n: i + 1 })}`, sub: () => yrs(st.y), y: st.y, pool: () => st.q })),
+    // jede Station ist eine Ära der Karriere: ein Album (oder mehrere, wenn eines allein zu wenige Songs hat), mit seinem Cover
+    stations: a.st.map((st, i) => { const L = st.al || [];
+      // Name der Ära: ein Album · zwei Alben „A · B“ · mehr „erstes bis letztes“
+      const al = () => !L.length ? tx('Station {n}', { n: i + 1 }) : L.length <= 2 ? L.join(' · ') : tx('{a} bis {b}', { a: L[0], b: L[L.length - 1] }); return {
+      sid: `${a.id}.${i + 1}`, icon: '💿', ac: st.ac, img: st.ac ? dzCover(st.ac, 250) : stImg(st), name: al, get era() { return al(); }, albums: L.map((t, k) => `${t} (${st.ay?.[k] ?? ''})`),
+      label: () => `${a.A} · ${al()}`, sub: () => yrs(st.y), y: st.y, pool: () => st.q }; }),
   };
 }
+/* ---------- Profil eines Stars (scripts/artists.js → data/tour.json, Feld pr) ---------- */
+const PROFILE = a => a?.pr || {};
+const artistPic = (a, size = 250) => a.p ? `https://e-cdns-images.dzcdn.net/images/artist/${a.p}/${size}x${size}-000000-80-0-0.jpg` : a.c ? cover(a, size) : '';
+// Erfolg „ganze Tour“: Name = Fans des Stars (belegt) oder einer seiner Songs
+const artistAch = a => [PROFILE(a).fans || PROFILE(a).ach || a.A, tx('Alle Stationen der Tour von {a} geschafft', { a: a.A })];
+/* Farbe einer Ära aus ihrem Albumcover: die kräftigste Farbfamilie im Bild (Farbton-Körbe, gewichtet nach Sättigung),
+   Hauttöne zählen nicht (sonst wäre jedes Porträt-Cover orange); ohne klar kräftige Farbe keine eigene Farbe. Hell genug für dunkle Flächen.
+   Schwarz-weiße Cover → keine eigene Farbe (dann das Koralle des Spiels). Deezer erlaubt das Auslesen (CORS).
+   Ergebnis bleibt gespeichert (ot.col, je Cover). */
+const colCache = LS.get('col2', {}) || {};
+function coverColor(md5) {
+  if (!md5) return Promise.resolve(null);
+  if (md5 in colCache) return Promise.resolve(colCache[md5]);
+  return new Promise(res => {
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 40;
+        const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, 40, 40);
+        const d = x.getImageData(0, 0, 40, 40).data, bins = Array.from({ length: 12 }, () => ({ w: 0, h: 0, s: 0 }));
+        let total = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+          if (mx === mn) continue;
+          const s = (mx - mn) / (1 - Math.abs(2 * l - 1));
+          let h = mx === r ? ((g - b) / (mx - mn)) % 6 : mx === g ? (b - r) / (mx - mn) + 2 : (r - g) / (mx - mn) + 4; h = (h * 60 + 360) % 360;
+          if (h >= 5 && h <= 45 && s < .75) continue;   // Hauttöne zählen nicht (sonst wäre jedes Porträt-Cover orange)
+          const w = s * s * (1 - Math.abs(l - .5) * 2);
+          const bin = bins[Math.floor(h / 30)]; bin.w += w; bin.h += h * w; bin.s += s * w; total += w;
+        }
+        const best = bins.reduce((m, b) => b.w > m.w ? b : m, bins[0]);
+        const col = total < 20 || best.w < total * .25 || best.s / best.w < .4 ? null
+          : `hsl(${Math.round(best.h / best.w)} ${Math.round(Math.min(85, Math.max(55, best.s / best.w * 100)))}% 64%)`;
+        colCache[md5] = col; LS.set('col2', colCache); res(col);
+      } catch { res(null); }
+    };
+    img.onerror = () => res(null);
+    img.src = dzCover(md5, 120);
+  });
+}
+// Farbe der aktuellen Ära setzen (Kopf, Hinweise, Fortschritt); Haupt-Tour: Farben des Spiels
+async function applyTourColor(t, i) {
+  const root = document.documentElement.style, st = t?.kind === 'artist' ? t.stations[Math.max(0, i ?? 0)] : null;
+  const col = st ? await coverColor(st.ac) : null;
+  if (t?.kind === 'artist' && curTour()?.id !== t.id && G?.t?.id !== t.id) return;   // inzwischen woanders
+  for (const v of ['--teal', '--road1']) col ? root.setProperty(v, col) : root.removeProperty(v);
+  col ? root.setProperty('--teal2', col.replace('64%)', '82%)')) : root.removeProperty('--teal2');
+  document.body.classList.toggle('artist-mode', t?.kind === 'artist');
+}
+
 // Bild einer Künstler-Station: Cover eines Songs aus ihren Aufgaben
 function stImg(st) { const q = st.q.find(x => x.s != null && x.k !== 'rec') || st.q[0];   // nicht ein Song, nach dem bei „Welcher Song?“ gefragt wird
   const s = DATA.S[q.s ?? q.a]; return s ? cover(s, 120) : ''; }
@@ -247,6 +301,7 @@ async function startStation(tid, idx) {
     if (q.k === 'old') return Math.random() < .5 ? { ...q, a: q.b, b: q.a } : q;
     return q;
   });
+  applyTourColor(t, idx);
   G = { t, tid, idx, st, qs, n: 0, log: [], right: 0, ended: false, answered: false, before: starOf(t, idx), openBefore: openCount(t) };
   show('game');
   $('#gStation').textContent = `${st.icon} ${st.label()}`;
@@ -393,13 +448,14 @@ function endStation() {
   const next = t.stations[idx + 1];
   $('#endStation').textContent = `${st.icon} ${st.label()}`;
   $('#endBest').textContent = tx('Bestwert: {s}', { s: starTxt(best) });
-  $('#endKicker').textContent = stars === 3 ? tx('Perfekt!') : stars ? tx('Station geschafft') : tx('Knapp daneben');
+  const era = t.kind === 'artist' ? st.era : null, fans = t.kind === 'artist' ? PROFILE(t.artist)?.fans : null;
+  $('#endKicker').textContent = stars === 3 ? tx('Perfekt!') : stars ? (era ? tx('„{s}“ geschafft', { s: era }) : tx('Station geschafft')) : tx('Knapp daneben');
   $('#endStars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${.25 + i * .18}s">★</i>`).join('');
   window.countUp ? countUp($('#endScore'), G.right, n => tx('{n} von {m}', { n, m: G.qs.length })) : $('#endScore').textContent = tx('{n} von {m}', { n: G.right, m: G.qs.length });
-  $('#endSub').textContent = stars === 3 ? tx('Alle richtig – drei Sterne!') : stars === 2 ? tx('Noch 1 richtig mehr für drei Sterne') : stars === 1 ? tx('Für zwei Sterne brauchst du 5 richtige') : tx('Ab 3 richtigen gibt es den ersten Stern');
+  $('#endSub').textContent = stars === 3 ? (fans ? tx('Alle richtig – das freut die {f}!', { f: fans }) : tx('Alle richtig – drei Sterne!')) : stars === 2 ? tx('Noch 1 richtig mehr für drei Sterne') : stars === 1 ? tx('Für zwei Sterne brauchst du 5 richtige') : tx('Ab 3 richtigen gibt es den ersten Stern');
   const finished = !next && stars && G.before === 0;
   let note = '';
-  if (opened && next) note = '🎉 ' + tx('Neue Station offen: {s}', { s: `${next.icon} ${next.label()}` });
+  if (opened && next) note = '🎉 ' + (next.era ? tx('Neue Ära offen: {s}', { s: `${next.era} (${next.sub()})` }) : tx('Neue Station offen: {s}', { s: `${next.icon} ${next.label()}` }));
   else if (finished) note = '🏁 ' + (t.kind === 'artist' ? tx('Du hast die Tour von {a} geschafft!', { a: t.artist.A }) : tx('Du hast die ganze Tour geschafft – von Memphis bis heute!'));
   else if (!stars && G.before === 0) note = tx('Versuch es nochmal – die Songs bleiben dieselben, nur die Aufgaben wechseln.');
   $('#endNote').textContent = note; $('#endNote').classList.toggle('hidden', !note);
@@ -480,6 +536,8 @@ function checkAch(g) {
     facts25: factsRight >= 25, facts100: factsRight >= 100, games50: (st.games || 0) >= 50,
   };
   for (const a of ACH) if (ok[a[0]] && !have[a[0]]) { have[a[0]] = today(); fresh.push(a); }
+  // eigener Erfolg je Star: ganze Tour geschafft – Name: die Fans des Stars oder einer seiner Songs (js: artistAch)
+  for (const t of artistTours) { const id = 'a:' + t.artist.id; if (!have[id] && doneCount(t) === t.stations.length) { have[id] = today(); fresh.push(['', '🎤', artistAch(t.artist)[0]]); } }
   if (fresh.length) LS.set('ach', have);
   return fresh;
 }
@@ -497,7 +555,9 @@ function renderStats() {
   const have = LS.get('ach', {});
   $('#statsBox').innerHTML = `<div class="group" style="margin-top:14px">${rows.map(([k, v]) => `<div class="cell"><span class="grow">${k}</span><b>${v}</b></div>`).join('')}</div>`
     + (types.length ? `<div class="group-h">${tx('Treffer je Art')}</div><div class="group">${types.map(([k, v]) => `<div class="cell"><span class="grow">${k}</span><b>${v}</b></div>`).join('')}</div>` : '')
-    + `<div class="group-h">${tx('Erfolge')} · ${Object.keys(have).length}/${ACH.length}</div><div class="group icons">${ACH.map(a => `<div class="cell ach ${have[a[0]] ? '' : 'locked'}"><span class="cell-ic ach-ic">${a[1]}</span><span class="grow">${tx(a[2])}<span class="sub">${tx(a[3])}</span></span>${have[a[0]] ? '<b>✓</b>' : ''}</div>`).join('')}</div>`;
+    + `<div class="group-h">${tx('Erfolge')} · ${ACH.filter(a => have[a[0]]).length}/${ACH.length}</div><div class="group icons">${ACH.map(a => `<div class="cell ach ${have[a[0]] ? '' : 'locked'}"><span class="cell-ic ach-ic">${a[1]}</span><span class="grow">${tx(a[2])}<span class="sub">${tx(a[3])}</span></span>${have[a[0]] ? '<b>✓</b>' : ''}</div>`).join('')}</div>`;
+  // eigener Erfolg je Star (Name: seine Fans oder einer seiner Songs)
+  if (DATA?.artists) $('#statsBox').insertAdjacentHTML('beforeend', `<div class="group-h">${tx('Künstler-Erfolge')} · ${DATA.artists.filter(a => have['a:' + a.id]).length}/${DATA.artists.length}</div><div class="group icons">${DATA.artists.map(a => { const [n, d] = artistAch(a); return `<div class="cell ach ${have['a:' + a.id] ? '' : 'locked'}"><span class="cell-ic ach-ic a-ach"><img src="${artistPic(a, 120)}" alt="" loading="lazy"></span><span class="grow">${esc(n)}<span class="sub">${esc(d)}</span></span>${have['a:' + a.id] ? '<b>✓</b>' : ''}</div>`; }).join('')}</div>`);
 }
 
 /* ---------- Karte ----------
@@ -531,8 +591,13 @@ function renderMap(t) {
     </button>`;
   }).join('');
   drawRoad(items, open);
+  if (t.kind === 'artist') Promise.all(t.stations.map(s => coverColor(s.ac))).then(cols => {
+    if (curTour()?.id !== t.id) return;
+    cols.forEach((c, i) => { const el = $(`#map .stn[data-i="${i}"]`); if (el && c) el.style.setProperty('--sc', c); });
+    drawRoad(items, open, cols);
+  });
 }
-function drawRoad(items, open) {
+function drawRoad(items, open, cols = null) {
   const svg = $('#road'), w = $('#mapWrap').clientWidth || 320, h = parseFloat($('#mapWrap').style.height);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
   const pts = items.filter(it => it.dec == null).sort((a, b) => a.i - b.i).map(it => ({ i: it.i, x: it.x / 100 * w, y: it.y + 32 }));
@@ -544,7 +609,8 @@ function drawRoad(items, open) {
   const done = pts.slice(0, open);
   svg.innerHTML = `<defs><linearGradient id="roadG" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="var(--road1)"/><stop offset="1" stop-color="var(--road2)"/></linearGradient></defs>
     <path d="${path(pts)}" class="r-base"/><path d="${path(pts)}" class="r-dash"/>
-    ${done.length > 1 ? `<path d="${path(done)}" class="r-done"/>` : ''}`;
+    ${!cols ? (done.length > 1 ? `<path d="${path(done)}" class="r-done"/>` : '')
+      : done.slice(1).map((p, k) => `<path d="${path([done[k], p])}" class="r-done" style="stroke:${cols[p.i] || cols[done[k].i] || 'var(--road1)'}"/>`).join('')}`;   // Künstler-Tour: jedes Stück in der Farbe der Ära, zu der es führt
 }
 function scrollToStation(i, smooth = false) {
   const el = $(`#map .stn[data-i="${i}"]`); if (!el) return;
@@ -575,6 +641,7 @@ function renderHome() {
     $('#tourSub').textContent = tx('Jede Tour führt durch eine Karriere – mit Fragen nur zu diesem Star: Welcher Song läuft? Was kam zuerst? Mit wem gesungen?');
     $('#tourSub').classList.remove('hidden');
     $('#nextBtn').parentElement.classList.add('hidden');
+    $('#tourPic').classList.add('hidden'); $('#tourInfo').classList.add('hidden'); applyTourColor(null);
     renderArtists();
     return;
   }
@@ -582,6 +649,17 @@ function renderHome() {
   const nextIdx = done >= n ? t.stations.findIndex((_, i) => starOf(t, i) < 3) : open - 1;
   $('#tourKicker').textContent = t.kind === 'artist' ? tx('Künstler-Tour') : tx('Eine Reise durch die Musikgeschichte');
   $('#homeTitle').textContent = t.kind === 'artist' ? t.artist.A : 'On Tour';
+  // Kopf der Künstler-Tour: Foto, Herkunft, Mitglieder bzw. bürgerlicher Name, Spitzname, Fans – nur Belegtes (scripts/artists.js)
+  const pr = t.kind === 'artist' ? PROFILE(t.artist) : null, pic = pr ? artistPic(t.artist, 500) : '';
+  $('#tourPic').classList.toggle('hidden', !pic); if (pic && $('#tourPic').src !== pic) $('#tourPic').src = pic;
+  $('#tourInfo').innerHTML = !pr ? '' : [
+    pr.from && `<span>📍 ${esc(inLang(pr.from))}</span>`,
+    pr.who && `<span>${pr.who.includes('·') ? '👥' : '🪪'} ${esc(pr.who)}</span>`,
+    pr.nick && `<span>✨ „${esc(pr.nick)}“</span>`,
+    pr.fans && `<span>💬 ${esc(tx('Fans: {f}', { f: pr.fans }))}</span>`,
+  ].filter(Boolean).join('');
+  $('#tourInfo').classList.toggle('hidden', !pr);
+  applyTourColor(t, nextIdx);
   $('#tourProg').innerHTML = `<span>🗺️ ${tx('Station {n} von {m}', { n: Math.min(open, n), m: n })}</span><span>⭐ ${tx('{n} von {m} Sternen', { n: tot, m: n * 3 })}</span>
     <i class="bar"><b style="width:${(tot / (n * 3) * 100).toFixed(1)}%"></b></i>`;
   const st = t.stations[nextIdx];
@@ -603,7 +681,7 @@ function renderArtists() {
   $('#artistGrid').innerHTML = rows.map(({ a }) => {
     const t = tourOf('a:' + a.id), tot = totalStars(t), max = t.stations.length * 3, done = doneCount(t) === t.stations.length;
     // Profilbild des Stars bei Deezer (p), sonst das Cover seines bekanntesten Songs
-    const img = a.p ? `https://e-cdns-images.dzcdn.net/images/artist/${a.p}/250x250-000000-80-0-0.jpg` : a.c ? cover(a, 250) : '';
+    const img = artistPic(a);
     return `<button class="artist ${done ? 'done' : ''}" data-a="${a.id}">
       <span class="a-cv">${img ? `<img src="${img}" alt="" loading="lazy">` : '🎤'}${done ? '<span class="a-done">✓</span>' : ''}</span>
       <b>${esc(a.A)}</b><small>${tot ? `⭐ ${tot}/${max}` : tx('{n} Stationen', { n: t.stations.length })}</small>
@@ -618,12 +696,13 @@ function openStation(tid, i) {
   const t = tourOf(tid), st = t.stations[i], n = starOf(t, i), locked = i >= openCount(t);
   sheetAt = [tid, i];
   $('#stTitle').textContent = tx('Station {n}', { n: i + 1 });
-  $('#stHero').innerHTML = `${st.img ? `<img class="st-img" src="${st.img}" alt="">` : `<span class="st-ic">${st.icon}</span>`}<b>${esc(t.kind === 'artist' ? t.artist.A : st.label())}</b><span>${esc(st.sub())}</span>
+  $('#stHero').innerHTML = `${st.img ? `<img class="st-img" src="${st.img}" alt="">` : `<span class="st-ic">${st.icon}</span>`}<b>${esc(t.kind === 'artist' ? st.name() : st.label())}</b><span>${esc(t.kind === 'artist' ? `${t.artist.A} · ${st.sub()}` : st.sub())}</span>
     <span class="st-stars">${[0, 1, 2].map(k => `<i class="${k < n ? 'on' : ''}">★</i>`).join('')}</span>`;
   $('#stInfo').innerHTML = [
     ['🎧', tx('6 Aufgaben mit Musik'), t.kind === 'artist' ? tx('Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre') : tx('Erkennen, Älter oder neuer, Hit or Miss und Gold-Fragen')],
     ['⭐', tx('Sterne'), tx('1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6')],
-    ['📅', t.kind === 'artist' ? tx('Songs aus diesen Jahren') : tx('Songs aus der Zeit'), yrs([st.y[0], Math.min(st.y[1], new Date().getFullYear())])],
+    st.albums ? ['💿', st.albums.length > 1 ? tx('Alben dieser Ära') : tx('Album dieser Ära'), st.albums.join(' · ')]
+      : ['📅', tx('Songs aus der Zeit'), yrs([st.y[0], Math.min(st.y[1], new Date().getFullYear())])],
   ].map(([ic, tt, sub]) => `<div class="cell"><span class="cell-ic ach-ic">${ic}</span><span class="grow">${tt}<span class="sub">${esc(sub)}</span></span></div>`).join('');
   const prev = t.stations[i - 1];
   $('#stFoot').textContent = locked ? tx('Noch zu: Hol erst einen Stern in {s}.', { s: prev.label() }) : n === 3 ? tx('Alle Sterne geholt – du kannst die Station trotzdem jederzeit nochmal spielen.') : n ? tx('Beliebig oft spielbar – es zählt dein bester Wert.') : '';
