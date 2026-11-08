@@ -3,7 +3,7 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.2.1', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.2.2', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
 const DATA_V = 'd10';
 const $ = s => document.querySelector(s);
@@ -666,7 +666,7 @@ function renderHome() {
     $('#tourSub').textContent = tx('Jede Tour führt durch eine Karriere – mit Fragen nur zu diesem Star: Welcher Song läuft? Was kam zuerst? Mit wem gesungen?');
     $('#tourSub').classList.remove('hidden');
     $('#nextBtn').parentElement.classList.add('hidden');
-    $('#tourPic').classList.add('hidden'); $('#tourInfo').classList.add('hidden'); applyTourColor(null);
+    $('#tourPic').classList.add('hidden'); $('#tourInfo').classList.add('hidden'); $('#tourReset').classList.add('hidden'); applyTourColor(null);
     renderArtists();
     return;
   }
@@ -694,8 +694,28 @@ function renderHome() {
   $('#tourSub').textContent = t.kind === 'artist' ? tx('Fragen nur zu {a}: Welcher Song? Was kam zuerst? Mit wem gesungen? Über eine Milliarde Streams?', { a: t.artist.A })
     : tx('An jeder Station laufen Songs aus dieser Zeit. Sechs Aufgaben – ab 3 richtigen gibt es einen Stern, und die nächste Station ist offen.');
   $('#tourSub').classList.toggle('hidden', tot > 0);
+  $('#tourReset').classList.toggle('hidden', !resetIds(t).some(id => +(LS.get(t.key, {}) || {})[id] > 0));
   renderMap(t);
 }
+/* Eine Tour zurücksetzen: ihre Sterne löschen (Haupt-Tour samt Bonus-Stationen) – Erfolge bleiben.
+   Löschmarke genau für diesen Schlüssel ('=ot.stars' / '=ot.astars'), damit der Abgleich die alten Sterne nicht zurückholt;
+   die übrigen Touren im selben Schlüssel stehen im neuen lokalen Stand und kommen so auf alle Geräte. */
+function resetIds(t) {
+  if (t.kind === 'artist') return Object.keys(LS.get('astars', {}) || {}).filter(k => k.startsWith(t.artist.id + '.'));
+  return [...t.stations, ...tourOf('bonus').stations].map(s => s.sid);
+}
+async function resetTour(t) {
+  const name = t.kind === 'artist' ? t.artist.A : tx('Haupt-Tour');
+  const msg = t.kind === 'artist' ? tx('Alle Sterne der Tour von {a} löschen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.', { a: name })
+    : tx('Alle Sterne der Haupt-Tour löschen, auch die der Bonus-Stationen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.');
+  if (!(await ask(msg, tx('Zurücksetzen'), true))) return;
+  const m = { ...(LS.get(t.key, {}) || {}) };
+  for (const id of resetIds(t)) delete m[id];
+  LS.set(t.key, m);
+  Sync.reset('=ot.' + t.key);
+  renderHome(); window.scrollTo(0, 0);
+}
+$('#tourReset').onclick = () => { const t = curTour(); if (t) resetTour(t); };
 function renderArtists() {
   if (!DATA) { $('#artistGrid').innerHTML = '<div class="loader"></div>'; return; }
   // sortierbar: A–Z, nach Zahl der Stationen (meiste zuerst) oder nach Fortschritt (meiste Sterne in Prozent zuerst)

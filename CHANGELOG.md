@@ -1,5 +1,9 @@
 # Neuerungen
 
+## 1.2.2 – 08.11.2026
+- Neu: Jede Tour lässt sich einzeln zurücksetzen (Knopf unter der Karte) – die Haupt-Tour samt Bonus-Stationen oder eine Künstler-Tour; Erfolge bleiben
+- Abgleich: Zurückgesetzte Werte kommen nicht mehr von anderen Geräten zurück
+
 ## 1.2.1 – 08.11.2026
 - Künstler-Touren: Wissensfragen ausgemistet – 45 Fragen für Superfans entfernt (Studiomusiker, Produzenten, Regisseure, Aufnahmeorte, Plattenfirmen, Chart-Wochen, Geburtsjahre)
 - Dafür 13 neue, bekanntere Fragen, u. a. zu Queen, Linkin Park, Coldplay, David Guetta, Avicii, Bruno Mars und Ed Sheeran

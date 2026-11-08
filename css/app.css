@@ -327,3 +327,6 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
 .bonus:active{transform:scale(.97)}
 /* Teilen am Ende einer Station */
 .share-btn{display:flex;margin:14px auto 0;gap:6px;align-items:center}
+/* Tour zurücksetzen – unter der Karte, dezent */
+.tour-reset{display:flex;align-items:center;gap:8px;margin:14px auto 0;padding:9px 16px;border-radius:999px;font-size:.86rem;color:var(--muted)}
+.tour-reset .ic{width:16px;height:16px}
