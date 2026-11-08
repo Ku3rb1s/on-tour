@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.0.3 – 08.11.2026
+- Künstler-Auswahl: Fotos der Stars (Profilbild bei Deezer) statt Albumcover
+
 ## 1.0.2 – 08.11.2026
 - Künstler-Touren: Stars sortierbar nach A–Z, meisten Stationen oder Fortschritt
 - Mehr Stationen: Die meisten Stars haben jetzt 6–8 Stationen statt 3–5 (bei Beatles, Queen, ABBA und Michael Jackson bleibt es bei 3, weil für weitere Songs keine sicheren Jahre vorliegen)

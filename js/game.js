@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.0.2', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.0.3', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd5';
+const DATA_V = 'd6';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -602,7 +602,8 @@ function renderArtists() {
   rows.sort((x, y) => (sort === 'st' ? y.n - x.n : sort === 'prog' ? y.p - x.p : 0) || name(x.a).localeCompare(name(y.a), LOC()));
   $('#artistGrid').innerHTML = rows.map(({ a }) => {
     const t = tourOf('a:' + a.id), tot = totalStars(t), max = t.stations.length * 3, done = doneCount(t) === t.stations.length;
-    const img = a.c ? cover(a, 250) : '';
+    // Profilbild des Stars bei Deezer (p), sonst das Cover seines bekanntesten Songs
+    const img = a.p ? `https://e-cdns-images.dzcdn.net/images/artist/${a.p}/250x250-000000-80-0-0.jpg` : a.c ? cover(a, 250) : '';
     return `<button class="artist ${done ? 'done' : ''}" data-a="${a.id}">
       <span class="a-cv">${img ? `<img src="${img}" alt="" loading="lazy">` : '🎤'}${done ? '<span class="a-done">✓</span>' : ''}</span>
       <b>${esc(a.A)}</b><small>${tot ? `⭐ ${tot}/${max}` : tx('{n} Stationen', { n: t.stations.length })}</small>

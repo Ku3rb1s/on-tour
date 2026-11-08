@@ -316,9 +316,10 @@ async function songsOfStar(name) {
   const k = HM.key(name);
   const list = D.tracks.filter(s => s.T && !XMAS.test(s.t) && !NOT_A_SONG.test(s.t) && (s.ak === k || s.parts.some(p => HM.key(p) === k)));
   const firstYear = Math.min(...list.filter(s => s.q >= 1).map(s => s.y));
+  // gleichnamige Interpreten (es gibt mehrere „Queen“): der mit den meisten Fans – von dort auch das Profilbild
+  const found = ((await dz('/search/artist?q=' + encodeURIComponent(name) + '&limit=10'))?.data || []).filter(a => HM.key(a.name) === k).sort((a, b) => b.nb_fan - a.nb_fan)[0];
+  list.pic = String(found?.picture_medium || '').match(/images\/artist\/([0-9a-f]{32})\//)?.[1] || '';
   if (list.length < WANT_SONGS) {
-    // gleichnamige Interpreten (es gibt mehrere „Queen“): der mit den meisten Fans
-    const found = ((await dz('/search/artist?q=' + encodeURIComponent(name) + '&limit=10'))?.data || []).filter(a => HM.key(a.name) === k).sort((a, b) => b.nb_fan - a.nb_fan)[0];
     const top = found ? (await dz(`/artist/${found.id}/top?limit=100`))?.data || [] : [];
     for (const t of top) {
       if (list.length >= WANT_SONGS) break;
@@ -402,7 +403,7 @@ async function buildArtist(name) {
   // nach Jahr geordnet gleichmäßig auf die Stationen verteilt (sonst hätten frühe Stationen alle Fragen)
   placed.sort((x, y) => x.y - y.y).forEach((q, i) => { delete q.y; stations[Math.floor(i * stations.length / placed.length)].qs.push(q); });
   const top = all.filter(s => s.ak === k && s.c && !s.dz).sort((a, b) => a.f - b.f)[0] || all[0];
-  return { id: slug(name), A: name, c: top?.c || '', c0: top?.c0 || 0, songs: all.length, dzSongs: all.filter(s => s.dz).length, stations };
+  return { id: slug(name), A: name, pic: all.pic, c: top?.c || '', c0: top?.c0 || 0, songs: all.length, dzSongs: all.filter(s => s.dz).length, stations };
 }
 
 /* ---------- 6. Schreiben ---------- */
@@ -414,7 +415,7 @@ async function buildArtist(name) {
   L.push('════ Künstler-Touren ════');
   for (const name of STARS) {
     const a = await buildArtist(name);
-    artistsOut.push({ id: a.id, A: a.A, c: a.c, ...(a.c0 ? { c0: a.c0 } : {}), st: a.stations.map(st => ({ y: st.y, q: st.qs.map(encode) })) });
+    artistsOut.push({ id: a.id, A: a.A, ...(a.pic ? { p: a.pic } : {}), c: a.c, ...(a.c0 ? { c0: a.c0 } : {}), st: a.stations.map(st => ({ y: st.y, q: st.qs.map(encode) })) });
     L.push(`--- ${name}: ${a.songs} Songs (davon ${a.dzSongs} von Deezer ergänzt) · ${a.stations.length} Stationen`);
     a.stations.forEach((st, i) => {
       const kinds = st.qs.reduce((m, q) => (m[q.k] = (m[q.k] || 0) + 1, m), {});
