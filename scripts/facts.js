@@ -1,4 +1,4 @@
-/* On Tour – Wissensfragen zu den Stars der Künstler-Touren (von Hand geschrieben, recherchiert am 08.11.2026,
+/* On Tour – Wissensfragen zu den Stars der Künstler-Touren (von Hand geschrieben, recherchiert und nachgeprüft am 08.11.2026,
    vor allem mit Wikipedia; Unsicheres zusätzlich gegengeprüft). Nur Fakten, die sich nicht ändern (keine Zählungen wie
    „wie viele Grammys“). scripts/build-data.js hängt jede Frage an die Karriere-Station, in deren Jahre sie fällt (y).
 
@@ -43,7 +43,7 @@ module.exports = {
   'Michael Jackson': [
     Q(1979, "Don't Stop 'Til You Get Enough", L('In welcher Stadt wurde Michael Jackson geboren?', 'In which city was Michael Jackson born?', 'Dans quelle ville est né Michael Jackson ?', '¿En qué ciudad nació Michael Jackson?', 'I hvilken by ble Michael Jackson født?'), ['Gary', 'Detroit', 'Chicago', 'Los Angeles']),
     Q(1979, 'Rock with You', L('Bei welchem Label wurden die Jackson 5 berühmt?', 'Which label made the Jackson 5 famous?', 'Sur quel label les Jackson 5 sont-ils devenus célèbres ?', '¿Con qué sello se hicieron famosos los Jackson 5?', 'Hvilket plateselskap gjorde Jackson 5 berømte?'), ['Motown', 'Atlantic', 'Stax', 'Def Jam']),
-    Q(1982, 'Beat It', L('Wer produzierte das Album „Thriller“?', 'Who produced the album “Thriller”?', 'Qui a produit l’album « Thriller » ?', '¿Quién produjo el álbum «Thriller»?', 'Hvem produserte albumet «Thriller»?'), ['Quincy Jones', 'Prince', 'Lionel Richie', 'Nile Rodgers']),
+    Q(1982, 'Beat It', L('Wer produzierte den Song „Thriller“?', 'Who produced the song “Thriller”?', 'Qui a produit la chanson « Thriller » ?', '¿Quién produjo la canción «Thriller»?', 'Hvem produserte sangen «Thriller»?'), ['Quincy Jones', 'Prince', 'Lionel Richie', 'Nile Rodgers']),
     Q(1983, 'Billie Jean', L('In welcher TV-Show zeigte er 1983 zum ersten Mal den Moonwalk?', 'On which TV special did he first do the moonwalk in 1983?', 'Dans quelle émission a-t-il fait son premier moonwalk en 1983 ?', '¿En qué especial de TV hizo su primer moonwalk en 1983?', 'I hvilket TV-show gjorde han moonwalk for første gang i 1983?'), ['Motown 25', 'Live Aid', 'Saturday Night Live', 'Soul Train']),
     Q(1987, 'Smooth Criminal', L('Welchen Spitznamen trägt Michael Jackson?', 'What is Michael Jackson’s nickname?', 'Quel est le surnom de Michael Jackson ?', '¿Cuál es el apodo de Michael Jackson?', 'Hva er kallenavnet til Michael Jackson?'), ['King of Pop', 'The Boss', 'Godfather of Soul', 'Prince of Pop']),
     Q(1991, 'Black or White', L('Wie hieß seine Ranch in Kalifornien?', 'What was his ranch in California called?', 'Comment s’appelait son ranch en Californie ?', '¿Cómo se llamaba su rancho en California?', 'Hva het ranchen hans i California?'), ['Neverland', 'Graceland', 'Paisley Park', 'Wonderland']),

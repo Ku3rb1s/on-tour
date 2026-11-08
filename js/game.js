@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.0.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.0.1', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd3';
+const DATA_V = 'd4';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -210,6 +210,8 @@ function pickQuestions(pool) {
   const take = q => { out.push(q); songsOfQ(q).forEach(i => used.add(i)); };
   const rest = shuffle(pool);
   for (const g of shuffle(['rec', 'old', 'claim', 'gold', 'feat', 'fact'])) { const q = rest.find(x => groupOf(x) === g && !out.includes(x) && fits(x)); if (q) take(q); }
+  // Künstler-Touren: bis zu zwei Wissensfragen je Runde
+  const f2 = rest.find(x => x.k === 'fact' && !out.includes(x) && fits(x)); if (f2) take(f2);
   for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q) && fits(q)) take(q); }
   for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q)) take(q); }   // notfalls doch ein Song doppelt
   return shuffle(out.slice(0, Q_PER_STATION));

@@ -285,7 +285,9 @@ function buildTour(name, opt) {
 const STARS = ['The Beatles', 'Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Linkin Park', 'Coldplay', 'Beyoncé', 'Rihanna', 'Shakira',
   'Lady Gaga', 'David Guetta', 'Avicii', 'Kygo', 'Bruno Mars', 'Ed Sheeran', 'Taylor Swift', 'The Weeknd', 'Drake', 'Billie Eilish', 'Bad Bunny',
   '50 Cent', 'Justin Bieber', 'Travis Scott', 'Post Malone', 'Juice WRLD'];
-const FACTS = require('./facts.js');   // Wissensfragen je Star (von Hand, recherchiert)
+// Wissensfragen je Star (von Hand, recherchiert und geprüft): zu den Stars (facts.js) und zu einzelnen Songs (facts-songs.js)
+const FACTS = {};
+for (const part of [require('./facts.js'), require('./facts-songs.js')]) for (const [a, l] of Object.entries(part)) (FACTS[a] ||= []).push(...l);
 const WANT_SONGS = 24, OFFLINE = process.argv.includes('--offline');
 const slug = a => String(a).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const DZ_CACHE = path.join(__dirname, '.cache', 'deezer-artists.json');
