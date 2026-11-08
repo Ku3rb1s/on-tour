@@ -5,7 +5,7 @@
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
 const APP_VERSION = '1.0.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd1';
+const DATA_V = 'd2';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -29,8 +29,9 @@ const KIND = {
   claim: ['Hit or Miss', 'Stimmt das?'],
   who: ['Gold-Frage', 'Wer singt das?'],
   year: ['Gold-Frage', 'Aus welchem Jahr ist der Song?'],
+  feat: ['Mit wem?', 'Mit wem singt {a} hier?'],
 };
-const KIND_NAMES = { rec: 'Erkennen', old: 'Älter oder neuer', claim: 'Hit or Miss', gold: 'Gold-Frage' };
+const KIND_NAMES = { rec: 'Erkennen', old: 'Älter oder neuer', claim: 'Hit or Miss', gold: 'Gold-Frage', feat: 'Mit wem?' };
 
 // Gespeichert wird mit „ot.“ vorne – alle Spiele teilen sich den Browser-Speicher von ku3rb1s.github.io
 const LS = {
@@ -52,22 +53,38 @@ const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { cons
 const starTxt = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 
 /* ---------- Touren ----------
-   key = Speicher-Schlüssel der Sterne (ot.<key> = { Station-id: Sterne }, abgeglichen mit „mapmax“) */
-const TOURS = {
-  main: { key: 'stars', name: 'Haupt-Tour' },
-};
-const starsOf = (tour = 'main') => LS.get(TOURS[tour].key, {}) || {};
-const totalStars = (tour = 'main') => STATIONS.reduce((n, st) => n + (+starsOf(tour)[st.id] || 0), 0);
-// Wie viele Stationen sind offen? Die erste plus jede, deren Vorgänger mindestens 1 Stern hat
-function openCount(tour = 'main') {
-  const s = starsOf(tour); let n = 1;
-  while (n < STATIONS.length && (+s[STATIONS[n - 1].id] || 0) >= 1) n++;
-  return n;
-}
-const doneCount = (tour = 'main') => STATIONS.filter(st => (+starsOf(tour)[st.id] || 0) >= 1).length;
+   Eine Tour ist eine Liste von Stationen mit festen Aufgaben. Die Sterne stehen in ot.<key> = { Stations-Schlüssel: Sterne }
+   und werden mit „mapmax“ abgeglichen (pro Station zählt der beste Wert):
+     Haupt-Tour   ot.stars   Schlüssel = id aus js/stations.js
+     Künstler     ot.astars  Schlüssel = <Künstler-id>.<Nr.> (Nr. ab 1)
+   tourOf(id) baut daraus ein einheitliches Objekt, mit dem Karte, Station und Ergebnis arbeiten. */
 const cityName = st => tx(st.city);
 const stLabel = st => st.id === 'today' ? tx('Heute') : `${cityName(st)} ${st.year}`;
 const decLabel = y => tx('{d}er', { d: Math.floor(y / 10) * 10 });
+const yrs = y => y[0] === y[1] ? String(y[0]) : `${y[0]}–${y[1]}`;
+function tourOf(id = 'main') {
+  if (id === 'main') return {
+    id, kind: 'main', key: 'stars',
+    stations: STATIONS.map(st => ({ sid: st.id, st, icon: st.icon, name: () => st.id === 'today' ? tx('Heute') : cityName(st), label: () => stLabel(st),
+      sub: () => (st.id === 'today' ? '' : st.year + ' · ') + tx(st.theme), y: st.y, dec: st.year, game: st.game, pool: () => DATA?.tours.main[st.id] })),
+  };
+  const a = DATA?.artists.find(x => 'a:' + x.id === id);
+  if (!a) return null;
+  return {
+    id, kind: 'artist', key: 'astars', artist: a,
+    stations: a.st.map((st, i) => ({ sid: `${a.id}.${i + 1}`, icon: '🎤', img: stImg(st), name: () => tx('Station {n}', { n: i + 1 }),
+      label: () => `${a.A} · ${tx('Station {n}', { n: i + 1 })}`, sub: () => yrs(st.y), y: st.y, pool: () => st.q })),
+  };
+}
+// Bild einer Künstler-Station: Cover eines Songs aus ihren Aufgaben
+function stImg(st) { const q = st.q.find(x => x.s != null && x.k !== 'rec') || st.q[0];   // nicht ein Song, nach dem bei „Welcher Song?“ gefragt wird
+  const s = DATA.S[q.s ?? q.a]; return s ? cover(s, 120) : ''; }
+const starsMap = t => LS.get(t.key, {}) || {};
+const starOf = (t, i) => +starsMap(t)[t.stations[i].sid] || 0;
+const totalStars = (t = tourOf()) => t.stations.reduce((n, _, i) => n + starOf(t, i), 0);
+// Wie viele Stationen sind offen? Die erste plus jede, deren Vorgänger mindestens 1 Stern hat
+function openCount(t = tourOf()) { let n = 1; while (n < t.stations.length && starOf(t, n - 1) >= 1) n++; return n; }
+const doneCount = (t = tourOf()) => t.stations.filter((_, i) => starOf(t, i) >= 1).length;
 
 /* ---------- Cover ---------- */
 const dzCover = (c, size) => `https://e-cdns-images.dzcdn.net/images/cover/${c}/${size}x${size}-000000-80-0-0.jpg`;
@@ -181,8 +198,7 @@ function factHtml(c, s) {
 }
 
 /* ---------- Aufgaben einer Station ziehen ----------
-   Aus den 12 gebauten Aufgaben 6: je Art (Erkennen, Älter oder neuer, Hit or Miss, Gold-Frage) mindestens eine,
-   kein Song doppelt, Reihenfolge gemischt. */
+   Aus den gebauten Aufgaben (8–12) kommen 6 dran: je Art mindestens eine, kein Song doppelt, Reihenfolge gemischt. */
 const groupOf = q => q.k === 'who' || q.k === 'year' ? 'gold' : q.k;
 const songsOfQ = q => [q.s, q.a, q.b, q.k === 'claim' && q.c.k === 'older' ? q.c.o : null].filter(x => x != null);
 function pickQuestions(pool) {
@@ -190,71 +206,88 @@ function pickQuestions(pool) {
   const fits = q => songsOfQ(q).every(i => !used.has(i));
   const take = q => { out.push(q); songsOfQ(q).forEach(i => used.add(i)); };
   const rest = shuffle(pool);
-  for (const g of shuffle(['rec', 'old', 'claim', 'gold'])) { const q = rest.find(x => groupOf(x) === g && !out.includes(x) && fits(x)); if (q) take(q); }
+  for (const g of shuffle(['rec', 'old', 'claim', 'gold', 'feat'])) { const q = rest.find(x => groupOf(x) === g && !out.includes(x) && fits(x)); if (q) take(q); }
   for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q) && fits(q)) take(q); }
   for (const q of rest) { if (out.length >= Q_PER_STATION) break; if (!out.includes(q)) take(q); }   // notfalls doch ein Song doppelt
-  return shuffle(out);
+  return shuffle(out.slice(0, Q_PER_STATION));
+}
+// Überschrift je Art – in Künstler-Touren mit dem Namen des Stars
+function kindText(q) {
+  const a = G?.t.kind === 'artist' ? G.t.artist.A : null;
+  if (a && q.k === 'rec') return [KIND.rec[0], tx('Welcher Song von {a} läuft?', { a })];
+  if (a && q.k === 'old') return [KIND.old[0], tx('Was kam zuerst?')];
+  if (q.k === 'feat') return [KIND.feat[0], tx('Mit wem singt {a} hier?', { a: a || '' })];
+  if (a && q.k === 'claim') return [tx('Streams'), tx(KIND.claim[1])];
+  return [tx(KIND[q.k][0]), tx(KIND[q.k][1])];
 }
 
 /* ---------- Spiel ---------- */
 let G = null;
-async function startStation(idx, tour = 'main') {
+async function startStation(tid, idx) {
   if (G && !G.ended) return;
   unlockAudio();   // muss direkt im Tipp passieren (iPhone)
   $('#loading').classList.remove('hidden');
   try { await loadData(); } catch { $('#loading').classList.add('hidden'); return toast(tx('Die Songliste konnte nicht geladen werden.')); }
   $('#loading').classList.add('hidden');
-  const st = STATIONS[idx], pool = DATA.tours[tour]?.[st.id];
+  const t = tourOf(tid), st = t?.stations[idx], pool = st?.pool();
   if (!pool?.length) return toast(tx('Die Songliste konnte nicht geladen werden.'));
   const qs = pickQuestions(pool).map(q => {
     // Antworten mischen (die richtige steht im Paket immer vorne)
     if (q.k === 'rec') return { ...q, opts: shuffle([q.s, ...q.o]) };
     if (q.k === 'who') return { ...q, opts: shuffle([DATA.S[q.s].A, ...q.o]) };
+    if (q.k === 'feat') return { ...q, opts: shuffle([q.A, ...q.o]) };
     if (q.k === 'year') return { ...q, opts: [DATA.S[q.s].y, ...q.o].sort((a, b) => a - b) };
     if (q.k === 'old') return Math.random() < .5 ? { ...q, a: q.b, b: q.a } : q;
     return q;
   });
-  G = { tour, idx, st, qs, n: 0, log: [], right: 0, ended: false, answered: false, before: +starsOf(tour)[st.id] || 0, openBefore: openCount(tour) };
+  G = { t, tid, idx, st, qs, n: 0, log: [], right: 0, ended: false, answered: false, before: starOf(t, idx), openBefore: openCount(t) };
   show('game');
-  $('#gStation').textContent = `${st.icon} ${stLabel(st)}`;
+  $('#gStation').textContent = `${st.icon} ${st.label()}`;
   for (const s of songsOfQ(qs[0])) previewOf(DATA.S[s]).catch(() => {});
   renderQ();
 }
 const curQ = () => G?.qs[G.n];
 const mainSong = q => DATA.S[q.k === 'old' ? q.a : q.s];
+const yTxt = s => s.y ? ' · ' + s.y : '';   // ergänzte Deezer-Songs haben kein geprüftes Jahr
 
-function songCard(s, { hideA = false, hideT = false, blur = false } = {}) {
+function songCard(s, { hideA = false, hideT = false, blur = false, aTxt = null } = {}) {
   const img = cover(s, 250);
   return `<div class="song ${blur ? 'blur' : ''}" data-song="${s.i}" data-play="${s.i}">
     <div class="cv">${img ? `<img src="${img}" alt="" draggable="false">` : ''}<span class="eq"><i></i><i></i><i></i><i></i></span></div>
-    <div class="info"><div class="t">${hideT ? '<span class="qm">? ? ?</span>' : esc(s.T)}</div><div class="a">${hideA ? `<span class="qm">${tx('Wer ist das?')}</span>` : esc(s.A)}</div></div>
+    <div class="info"><div class="t">${hideT ? '<span class="qm">? ? ?</span>' : esc(s.T)}</div><div class="a">${aTxt ?? (hideA ? `<span class="qm">${tx('Wer ist das?')}</span>` : esc(s.A))}</div></div>
   </div>`;
 }
 function discHtml(s) {
   return `<button class="disc-btn" data-song="${s.i}" data-play="${s.i}" aria-label="${esc(tx('Nochmal von vorn'))}"><span class="vinyl"><span class="lbl"></span></span><span class="eq"><i></i><i></i><i></i><i></i></span></button>
     <div class="tap-hint">${tx('Tippen: nochmal von vorn')}</div>`;
 }
+const optBtn = (v, k, main, small = '') => `<button class="opt" data-v="${esc(v)}"><kbd>${k + 1}</kbd><span><b>${esc(main)}</b>${small ? `<small>${esc(small)}</small>` : ''}</span></button>`;
 function renderQ() {
   const q = curQ(); if (!q) return;
   G.answered = false;
-  const [kicker, title] = KIND[q.k];
-  $('#qKind').textContent = tx(kicker) + ' · ' + tx('Aufgabe {n} von {m}', { n: G.n + 1, m: G.qs.length });
-  $('#qTitle').textContent = tx(title);
+  const [kicker, title] = kindText(q);
+  $('#qKind').textContent = kicker + ' · ' + tx('Aufgabe {n} von {m}', { n: G.n + 1, m: G.qs.length });
+  $('#qTitle').textContent = title;
   $('#qFact').innerHTML = '';
   $('#qNextBox').classList.add('hidden');
   renderDots();
-  const s = mainSong(q), body = $('#qBody'), opts = $('#qOpts');
+  const s = mainSong(q), body = $('#qBody'), opts = $('#qOpts'), artistTour = G.t.kind === 'artist';
   opts.className = 'q-opts';
   if (q.k === 'rec') {
     body.innerHTML = discHtml(s);
-    opts.innerHTML = q.opts.map((i, k) => { const o = DATA.S[i]; return `<button class="opt" data-v="${i}"><kbd>${k + 1}</kbd><span><b>${esc(o.T)}</b><small>${esc(o.A)}</small></span></button>`; }).join('');
+    // Künstler-Tour: alle vier vom selben Star – darum ohne Interpret darunter
+    opts.innerHTML = q.opts.map((i, k) => { const o = DATA.S[i]; return optBtn(i, k, o.T, artistTour ? '' : o.A); }).join('');
   } else if (q.k === 'who') {
     body.innerHTML = songCard(s, { hideA: true, blur: true });
-    opts.innerHTML = q.opts.map((a, k) => `<button class="opt" data-v="${esc(a)}"><kbd>${k + 1}</kbd><span><b>${esc(a)}</b></span></button>`).join('');
+    opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
+  } else if (q.k === 'feat') {
+    // Mit wem? – der Titel steht da, die Interpreten nicht (sonst stünde die Antwort schon da)
+    body.innerHTML = songCard(s, { aTxt: `${esc(G.t.artist.A)} &amp; <span class="qm">?</span>` });
+    opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
   } else if (q.k === 'year') {
     body.innerHTML = songCard(s);
     opts.className = 'q-opts years';
-    opts.innerHTML = q.opts.map((y, k) => `<button class="opt" data-v="${y}"><kbd>${k + 1}</kbd><span><b>${y}</b></span></button>`).join('');
+    opts.innerHTML = q.opts.map((y, k) => optBtn(y, k, y)).join('');
   } else if (q.k === 'claim') {
     // wie Hit or Miss: Bei „ist von …“ ist der Interpret verdeckt, bei „heißt …“ der Titel (und das Cover unscharf)
     const hide = q.c.k === 'artist' ? 'a' : q.c.k === 'title' ? 't' : null;
@@ -267,7 +300,7 @@ function renderQ() {
     opts.className = 'q-opts pair';
     opts.innerHTML = [a, b].map((o, k) => `<button class="opt tile" data-v="${o.i}" data-song="${o.i}"><kbd>${k + 1}</kbd>
       <span class="cv">${cover(o, 250) ? `<img src="${cover(o, 250)}" alt="" draggable="false">` : ''}<span class="eq"><i></i><i></i><i></i><i></i></span></span>
-      <span class="tile-t"><b>${esc(o.T)}</b><small>${esc(o.A)}</small></span>
+      <span class="tile-t"><b>${esc(o.T)}</b>${artistTour ? '' : `<small>${esc(o.A)}</small>`}</span>
       <span class="tile-play" data-play="${o.i}" role="button" aria-label="${esc(tx('Anhören'))}"><svg class="ic"><use href="#i-play"/></svg>${tx('Anhören')}</span></button>`).join('<span class="vs">vs</span>');
   }
   fitClaim();
@@ -287,18 +320,20 @@ function fitClaim() {
   let size = parseFloat(getComputedStyle(cl).fontSize);
   while (cl.scrollWidth > cl.clientWidth + 1 && size > 14) { size -= 1; cl.style.fontSize = size + 'px'; }
 }
-
+function rightOf(q) {
+  const s = mainSong(q);
+  if (q.k === 'rec') return String(q.s);
+  if (q.k === 'who') return s.A;
+  if (q.k === 'feat') return q.A;
+  if (q.k === 'year') return String(s.y);
+  if (q.k === 'claim') return q.c.ok ? '1' : '0';
+  if (q.k === 'old') { const a = DATA.S[q.a], b = DATA.S[q.b]; return String(a.y < b.y ? a.i : b.i); }
+}
 function answer(v) {
   const q = curQ();
   if (!q || G.answered || G.ended) return;
   G.answered = true;
-  const s = mainSong(q);
-  let ok = false, right = null;
-  if (q.k === 'rec') { right = String(q.s); ok = String(v) === right; }
-  else if (q.k === 'who') { right = s.A; ok = v === right; }
-  else if (q.k === 'year') { right = String(s.y); ok = String(v) === right; }
-  else if (q.k === 'claim') { right = q.c.ok ? '1' : '0'; ok = String(v) === right; }
-  else if (q.k === 'old') { const a = DATA.S[q.a], b = DATA.S[q.b]; right = String(a.y < b.y ? a.i : b.i); ok = String(v) === right; }
+  const s = mainSong(q), right = rightOf(q), ok = v != null && String(v) === right;
   if (ok) G.right++;
   G.log.push({ q, ok, said: v });
   // Knöpfe einfärben: richtige Antwort grün, falsch gewählte rot
@@ -307,14 +342,14 @@ function answer(v) {
     if (b.dataset.v === right) b.classList.add('right');
     else if (b.dataset.v === String(v)) b.classList.add('wrong');
   }
-  $$('#qOpts .tile').forEach(t => { const o = DATA.S.find(x => String(x.i) === t.dataset.v); if (o) t.querySelector('.tile-t').insertAdjacentHTML('beforeend', `<em>${o.y}</em>`); });
+  $$('#qOpts .tile').forEach(t => { const o = DATA.byId.get(+t.dataset.v); if (o) t.querySelector('.tile-t').insertAdjacentHTML('beforeend', `<em>${o.y}</em>`); });
   // Auflösung: Song zeigen (Cover scharf, Interpret und Titel)
   $$('#qBody .song').forEach(el => el.classList.remove('blur'));
   // Erkennen: kein zweiter Titel oben (steht schon im grünen Knopf) – nur das Cover erscheint in der Mitte der Platte
   if (q.k === 'rec') { const l = $('#qBody .vinyl .lbl'), img = cover(s, 250); if (l && img) { l.style.backgroundImage = `url("${img}")`; l.classList.add('cov'); } $('#qBody .tap-hint')?.remove(); }
-  else if (q.k === 'who' || q.k === 'claim') { const t = $('#qBody .song .t'), a = $('#qBody .song .a'); if (t) t.textContent = s.T; if (a) a.textContent = s.A; }
-  const fact = q.k === 'claim' ? `<b>${esc(s.T)}</b> ${factHtml(q.c, s)}` : q.k === 'old' ? '' : `<b>${esc(s.T)}</b> · ${esc(s.a0)} · ${s.y}`;
-  $('#qFact').innerHTML = `<span class="${ok ? 'good' : 'wrong'}">${ok ? '✓ ' + tx('Richtig!') : '✗ ' + tx('Daneben!')}</span> ${fact}`;
+  else if (q.k === 'who' || q.k === 'claim' || q.k === 'feat') { const t = $('#qBody .song .t'), a = $('#qBody .song .a'); if (t) t.textContent = s.T; if (a) a.textContent = s.a0; }
+  const fact = q.k === 'claim' ? `<b>${esc(s.T)}</b> ${factHtml(q.c, s)}` : q.k === 'old' ? '' : `<b>${esc(s.T)}</b> · ${esc(s.a0)}${yTxt(s)}`;
+  $('#qFact').innerHTML = `<span class="${ok ? 'good' : 'wrong'}">${ok ? '✓ ' + tx('Richtig!') : v == null ? '⏱ ' + tx('Zeit abgelaufen') : '✗ ' + tx('Daneben!')}</span> ${fact}`;
   $('#game').classList.remove('ok', 'bad'); void $('#game').offsetWidth; $('#game').classList.add(ok ? 'ok' : 'bad');
   sound(ok ? 'ok' : 'miss');
   if (!ok && opt.vib && navigator.vibrate) navigator.vibrate(90);
@@ -332,41 +367,42 @@ function nextQ() {
 }
 
 /* ---------- Ende einer Station ---------- */
-let fresh = null;   // für die Karte: was sich gerade geändert hat (Sterne fliegen, nächste Station leuchtet)
+let fresh = null;   // für die Karte: was sich gerade geändert hat (Sterne ploppen, nächste Station leuchtet)
 function endStation() {
   if (!G || G.ended) return;
   G.ended = true;
   stopAudio();
-  const { st, tour } = G, stars = starsFor(G.right), map = starsOf(tour), best = Math.max(+map[st.id] || 0, stars);
-  if (stars > (+map[st.id] || 0)) { map[st.id] = stars; LS.set(TOURS[tour].key, map); }
-  const opened = openCount(tour) > G.openBefore;
-  fresh = { id: st.id, stars: best, gained: stars > G.before, opened: opened ? STATIONS[openCount(tour) - 1].id : null };
+  const { t, st, idx } = G, stars = starsFor(G.right), map = starsMap(t), had = +map[st.sid] || 0, best = Math.max(had, stars);
+  if (stars > had) { map[st.sid] = stars; LS.set(t.key, map); }
+  const opened = openCount(t) > G.openBefore;
+  fresh = { tid: t.id, sid: st.sid, gained: stars > G.before, opened: opened ? t.stations[openCount(t) - 1].sid : null };
   recordStats(G);
   const ach = checkAch(G);
-  const next = STATIONS[G.idx + 1];
-  $('#endStation').textContent = `${st.icon} ${stLabel(st)}`;
+  const next = t.stations[idx + 1];
+  $('#endStation').textContent = `${st.icon} ${st.label()}`;
   $('#endBest').textContent = tx('Bestwert: {s}', { s: starTxt(best) });
   $('#endKicker').textContent = stars === 3 ? tx('Perfekt!') : stars ? tx('Station geschafft') : tx('Knapp daneben');
   $('#endStars').innerHTML = [0, 1, 2].map(i => `<i class="${i < stars ? 'on' : ''}" style="animation-delay:${.25 + i * .18}s">★</i>`).join('');
   window.countUp ? countUp($('#endScore'), G.right, n => tx('{n} von {m}', { n, m: G.qs.length })) : $('#endScore').textContent = tx('{n} von {m}', { n: G.right, m: G.qs.length });
   $('#endSub').textContent = stars === 3 ? tx('Alle richtig – drei Sterne!') : stars === 2 ? tx('Noch 1 richtig mehr für drei Sterne') : stars === 1 ? tx('Für zwei Sterne brauchst du 5 richtige') : tx('Ab 3 richtigen gibt es den ersten Stern');
+  const finished = !next && stars && G.before === 0;
   let note = '';
-  if (opened && next) note = '🎉 ' + tx('Neue Station offen: {s}', { s: `${next.icon} ${stLabel(next)}` });
-  else if (!next && stars && G.before === 0) note = '🏁 ' + tx('Du hast die ganze Tour geschafft – von Memphis bis heute!');
+  if (opened && next) note = '🎉 ' + tx('Neue Station offen: {s}', { s: `${next.icon} ${next.label()}` });
+  else if (finished) note = '🏁 ' + (t.kind === 'artist' ? tx('Du hast die Tour von {a} geschafft!', { a: t.artist.A }) : tx('Du hast die ganze Tour geschafft – von Memphis bis heute!'));
   else if (!stars && G.before === 0) note = tx('Versuch es nochmal – die Songs bleiben dieselben, nur die Aufgaben wechseln.');
   $('#endNote').textContent = note; $('#endNote').classList.toggle('hidden', !note);
   const gl = GAME_LINKS[st.game];
   $('#moreLink').classList.toggle('hidden', !gl);
   if (gl) { $('#moreLink').href = gl[1]; $('#moreLink').innerHTML = `${tx('Mehr davon in {g}', { g: `<b>${gl[0]}</b>` })}<small>${tx(gl[2])}</small>`; }
   // Weiter-Knopf: nächste Station, wenn offen – sonst nochmal
-  const canNext = next && (+starsOf(tour)[st.id] || 0) >= 1;
+  const canNext = next && starOf(t, idx) >= 1;
   $('#goNextBtn').classList.toggle('hidden', !canNext);
-  $('#goNextLbl').textContent = canNext ? (next.id === 'today' ? tx('Weiter: {s}', { s: tx('Heute') }) : tx('Nach {s}', { s: cityName(next) })) : '';
+  $('#goNextLbl').textContent = !canNext ? '' : t.kind === 'artist' ? tx('Weiter: {s}', { s: next.name() }) : next.st.id === 'today' ? tx('Weiter: {s}', { s: tx('Heute') }) : tx('Nach {s}', { s: next.name() });
   $('#againBtn').classList.toggle('big', !canNext); $('#againBtn').classList.toggle('ghost', !!canNext);
   renderEndList();
   show('end');
   sound(stars ? 'end' : 'miss');
-  if (stars === 3 || (!next && stars && G.before === 0)) confetti(140);
+  if (stars === 3 || finished) confetti(140);
   ach.forEach((a, k) => setTimeout(() => toast(`${a[1]} ${tx(a[2])}`, 2600), 900 + k * 2800));
 }
 function renderEndList() {
@@ -375,10 +411,10 @@ function renderEndList() {
     let line = '';
     if (q.k === 'claim') line = `„${claimHtml(q.c)}“ → ${q.c.ok ? tx('stimmt') : tx('stimmt nicht')}<span class="fact-line">${factHtml(q.c, s)}</span>`;
     else if (q.k === 'old') { const b = DATA.S[q.b], a = DATA.S[q.a]; line = tx('Älter: {t}', { t: `<b>${esc((a.y < b.y ? a : b).T)}</b>` }) + ` · ${esc(a.T)} ${a.y} · ${esc(b.T)} ${b.y}`; }
-    else line = tx(KIND[q.k][1]) + ' → ' + `<b>${q.k === 'year' ? s.y : q.k === 'who' ? esc(s.A) : esc(s.T)}</b>`;
+    else line = kindText(q)[1] + ' → ' + `<b>${esc(rightOf(q) === String(q.s) ? s.T : rightOf(q))}</b>`;
     return `<div class="cell res ${l.ok ? 'ok' : 'bad'}" data-song="${s.i}" data-play="${s.i}">
       <span class="res-cv">${img ? `<img src="${img}" alt="" loading="lazy">` : ''}<span class="eq"><i></i><i></i><i></i></span></span>
-      <span class="grow"><b>${esc(s.T)}</b> · ${esc(s.A)} · ${s.y}<span class="sub">${line}</span></span>
+      <span class="grow"><b>${esc(s.T)}</b> · ${esc(s.A)}${yTxt(s)}<span class="sub">${line}</span></span>
       <span class="res-mark">${l.ok ? '✓' : '✗'}</span></div>`;
   }).join('');
   renderPlaying();
@@ -400,24 +436,29 @@ const ACH = [
   ['all', '🏁', 'Tour beendet', 'Alle 24 Stationen geschafft'],
   ['s36', '🌟', 'Sternensammler', '36 Sterne gesammelt'],
   ['s72', '👑', 'Alle Sterne', 'Alle 72 Sterne der Tour'],
+  ['fan', '🎤', 'Echter Fan', 'Eine Künstler-Tour ganz geschafft'],
+  ['fans3', '💿', 'Plattensammlung', 'Drei Künstler-Touren ganz geschafft'],
 ];
 function checkAch(g) {
-  const have = LS.get('ach', {}), fresh = [], s = starsOf('main'), done = doneCount('main'), tot = totalStars('main');
+  const have = LS.get('ach', {}), fresh = [], m = tourOf(), s = starsMap(m), done = doneCount(m), tot = totalStars(m);
+  const artistsDone = (DATA?.artists || []).filter(a => { const t = tourOf('a:' + a.id); return doneCount(t) === t.stations.length; }).length;
   const ok = {
     first: true, perfect: g.right === g.qs.length, sixties: STATIONS.filter(x => x.year < 1970).every(x => (+s[x.id] || 0) >= 1),
-    half: done >= 12, all: done >= STATIONS.length, s36: tot >= 36, s72: tot >= STATIONS.length * 3,
+    half: done >= 12, all: done >= STATIONS.length, s36: tot >= 36, s72: tot >= STATIONS.length * 3, fan: artistsDone >= 1, fans3: artistsDone >= 3,
   };
   for (const a of ACH) if (ok[a[0]] && !have[a[0]]) { have[a[0]] = today(); fresh.push(a); }
   if (fresh.length) LS.set('ach', have);
   return fresh;
 }
 function renderStats() {
-  const st = Sync.view('ot.stats', LS.get('stats', null));
+  const st = Sync.view('ot.stats', LS.get('stats', null)), m = tourOf();
   const pct = (r, n) => n ? Math.round(r / n * 100) + ' %' : '–';
   const rows = [
-    [tx('Stationen geschafft'), `${doneCount()} / ${STATIONS.length}`],
-    [tx('Sterne'), `${totalStars()} / ${STATIONS.length * 3}`],
+    [tx('Stationen geschafft'), `${doneCount(m)} / ${STATIONS.length}`],
+    [tx('Sterne'), `${totalStars(m)} / ${STATIONS.length * 3}`],
   ];
+  const as = Object.values(LS.get('astars', {}) || {}).reduce((a, b) => a + (+b || 0), 0);
+  if (as) rows.push([tx('Sterne in Künstler-Touren'), fmtN(as)]);
   if (st?.games) rows.push([tx('Gespielte Stationen'), fmtN(st.games)], [tx('Richtige Antworten'), `${fmtN(st.right)} (${pct(st.right, st.asked)})`]);
   const types = Object.entries(KIND_NAMES).filter(([k]) => st?.types?.[k]?.[1]).map(([k, n]) => [tx(n), pct(...st.types[k])]);
   const have = LS.get('ach', {});
@@ -427,33 +468,32 @@ function renderStats() {
 }
 
 /* ---------- Karte ----------
-   Unten fängt es an (Memphis 1956), oben ist heute. Die Stationen liegen in Schlangenlinien, dazwischen die Straße (SVG).
-   Der schon gefahrene Teil der Straße ist farbig. */
+   Unten fängt es an (Memphis 1956 bzw. die erste Station einer Karriere), oben ist das Ende. Die Stationen liegen in
+   Schlangenlinien, dazwischen die Straße (SVG). Der schon gefahrene Teil der Straße ist farbig. */
 const ROW = 134, DEC_ROW = 40, PAD_TOP = 24, PAD_BOT = 20;
-function mapLayout() {
-  // von oben nach unten: letzte Station zuerst
+function mapLayout(t) {
   const items = []; let y = PAD_TOP;
-  for (let i = STATIONS.length - 1; i >= 0; i--) {
-    const st = STATIONS[i];
+  for (let i = t.stations.length - 1; i >= 0; i--) {   // von oben nach unten: letzte Station zuerst
+    const st = t.stations[i], prev = t.stations[i - 1];
     items.push({ i, y: y + 6, x: 50 + Math.sin(i * 1.15 + .4) * 26 });
     y += ROW;
-    const dec = Math.floor(st.year / 10), prev = STATIONS[i - 1];
-    if (!prev || Math.floor(prev.year / 10) !== dec) { items.push({ dec: st.year, y: y + 2 }); y += DEC_ROW; }
+    if (st.dec && (!prev || Math.floor(prev.dec / 10) !== Math.floor(st.dec / 10))) { items.push({ dec: st.dec, y: y + 2 }); y += DEC_ROW; }
   }
   return { items, h: y + PAD_BOT };
 }
-function renderMap(tour = 'main') {
-  const { items, h } = mapLayout(), s = starsOf(tour), open = openCount(tour);
-  const map = $('#map'), wrap = $('#mapWrap');
+function renderMap(t) {
+  const { items, h } = mapLayout(t), open = openCount(t);
+  const wrap = $('#mapWrap');
   wrap.style.height = h + 'px';
-  map.innerHTML = items.map(it => {
+  $('#map').innerHTML = items.map(it => {
     if (it.dec) return `<div class="dec" style="top:${it.y}px"><span>${decLabel(it.dec)}</span></div>`;
-    const st = STATIONS[it.i], n = +s[st.id] || 0, locked = it.i >= open, cur = it.i === open - 1 && n === 0;
-    const cls = [locked ? 'locked' : n ? 'done' : 'next', cur ? 'cur' : '', fresh?.id === st.id && fresh.gained ? 'fresh' : '', fresh?.opened === st.id ? 'opened' : ''].join(' ');
-    return `<button class="stn ${cls}" data-i="${it.i}" style="left:${it.x}%;top:${it.y}px" aria-label="${esc(stLabel(st) + ' · ' + tx(st.theme))}">
-      <span class="dot"><span class="ic-e">${st.icon}</span>${locked ? '<svg class="ic lock"><use href="#i-lock"/></svg>' : ''}<span class="no">${it.i + 1}</span></span>
-      <span class="nm">${esc(st.id === 'today' ? tx('Heute') : cityName(st))}</span>
-      <span class="yr">${st.id === 'today' ? '' : st.year + ' · '}${esc(tx(st.theme))}</span>
+    const st = t.stations[it.i], n = starOf(t, it.i), locked = it.i >= open, cur = it.i === open - 1 && n === 0;
+    const mine = fresh?.tid === t.id;
+    const cls = [locked ? 'locked' : n ? 'done' : 'next', cur ? 'cur' : '', mine && fresh.sid === st.sid && fresh.gained ? 'fresh' : '', mine && fresh.opened === st.sid ? 'opened' : '', st.img ? 'has-img' : ''].join(' ');
+    return `<button class="stn ${cls}" data-i="${it.i}" style="left:${it.x}%;top:${it.y}px" aria-label="${esc(st.label() + ' · ' + st.sub())}">
+      <span class="dot">${st.img ? `<img src="${st.img}" alt="" loading="lazy">` : `<span class="ic-e">${st.icon}</span>`}${locked ? '<svg class="ic lock"><use href="#i-lock"/></svg>' : ''}<span class="no">${it.i + 1}</span></span>
+      <span class="nm">${esc(st.name())}</span>
+      <span class="yr">${esc(st.sub())}</span>
       <span class="st">${locked ? '' : [0, 1, 2].map(k => `<i class="${k < n ? 'on' : ''}">★</i>`).join('')}</span>
     </button>`;
   }).join('');
@@ -478,37 +518,78 @@ function scrollToStation(i, smooth = false) {
   const r = el.getBoundingClientRect();
   window.scrollTo({ top: Math.max(0, scrollY + r.top - innerHeight * .45), behavior: smooth && !reduced() ? 'smooth' : 'auto' });
 }
+
+/* ---------- Startseite: Haupt-Tour · Künstler (Auswahl) · eine Künstler-Tour ---------- */
+let view = LS.get('view', 'main');   // 'main' | 'artists' | 'a:<Künstler-id>'
+const curTour = () => view === 'artists' ? null : tourOf(view);
+function setView(v) { view = v; LS.set('view', v); renderHome(); window.scrollTo(0, 0); }
 function renderHome() {
-  const open = openCount(), tot = totalStars(), done = doneCount();
-  const nextIdx = done >= STATIONS.length ? STATIONS.findIndex(st => (+starsOf()[st.id] || 0) < 3) : open - 1;
-  $('#tourProg').innerHTML = `<span>🗺️ ${tx('Station {n} von {m}', { n: Math.min(open, STATIONS.length), m: STATIONS.length })}</span><span>⭐ ${tx('{n} von {m} Sternen', { n: tot, m: STATIONS.length * 3 })}</span>
-    <i class="bar"><b style="width:${(tot / (STATIONS.length * 3) * 100).toFixed(1)}%"></b></i>`;
-  const st = STATIONS[nextIdx];
+  if (view !== 'main' && !DATA) {   // Künstler stehen in data/tour.json – erst laden
+    $('#mapWrap').classList.add('hidden'); $('#artistGrid').classList.remove('hidden'); $('#artistGrid').innerHTML = '<div class="loader"></div>';
+    loadData().then(renderHome).catch(() => setView('main')); return;
+  }
+  if (view.startsWith('a:') && !tourOf(view)) view = 'artists';
+  $$('#tourTabs button').forEach(b => b.classList.toggle('on', b.dataset.v === (view === 'main' ? 'main' : 'artists')));
+  const t = curTour(), artists = view === 'artists';
+  $('#mapWrap').classList.toggle('hidden', artists);
+  $('#artistGrid').classList.toggle('hidden', !artists);
+  $('#backArtists').classList.toggle('hidden', !view.startsWith('a:'));
+  if (artists) {
+    $('#tourKicker').textContent = tx('Künstler-Touren');
+    $('#homeTitle').textContent = tx('Wähle einen Star');
+    $('#tourProg').innerHTML = '';
+    $('#tourSub').textContent = tx('Jede Tour führt durch eine Karriere – mit Fragen nur zu diesem Star: Welcher Song läuft? Was kam zuerst? Mit wem gesungen?');
+    $('#tourSub').classList.remove('hidden');
+    $('#nextBtn').parentElement.classList.add('hidden');
+    renderArtists();
+    return;
+  }
+  const open = openCount(t), tot = totalStars(t), done = doneCount(t), n = t.stations.length;
+  const nextIdx = done >= n ? t.stations.findIndex((_, i) => starOf(t, i) < 3) : open - 1;
+  $('#tourKicker').textContent = t.kind === 'artist' ? tx('Künstler-Tour') : tx('Eine Reise durch die Musikgeschichte');
+  $('#homeTitle').textContent = t.kind === 'artist' ? t.artist.A : 'On Tour';
+  $('#tourProg').innerHTML = `<span>🗺️ ${tx('Station {n} von {m}', { n: Math.min(open, n), m: n })}</span><span>⭐ ${tx('{n} von {m} Sternen', { n: tot, m: n * 3 })}</span>
+    <i class="bar"><b style="width:${(tot / (n * 3) * 100).toFixed(1)}%"></b></i>`;
+  const st = t.stations[nextIdx];
   $('#nextBtn').dataset.i = nextIdx;
-  $('#nextBtn').classList.toggle('hidden', nextIdx < 0);
-  if (st) $('#nextLbl').textContent = !tot ? tx('Los geht’s: {s}', { s: stLabel(st) }) : done >= STATIONS.length ? tx('Sterne sammeln: {s}', { s: stLabel(st) }) : tx('Weiter: {s}', { s: stLabel(st) });
+  $('#nextBtn').parentElement.classList.toggle('hidden', nextIdx < 0);
+  if (st) $('#nextLbl').textContent = !tot ? tx('Los geht’s: {s}', { s: st.label() }) : done >= n ? tx('Sterne sammeln: {s}', { s: st.label() }) : tx('Weiter: {s}', { s: st.label() });
+  $('#tourSub').textContent = t.kind === 'artist' ? tx('Fragen nur zu {a}: Welcher Song? Was kam zuerst? Mit wem gesungen? Über eine Milliarde Streams?', { a: t.artist.A })
+    : tx('An jeder Station laufen Songs aus dieser Zeit. Sechs Aufgaben – ab 3 richtigen gibt es einen Stern, und die nächste Station ist offen.');
   $('#tourSub').classList.toggle('hidden', tot > 0);
-  renderMap();
+  renderMap(t);
+}
+function renderArtists() {
+  if (!DATA) { $('#artistGrid').innerHTML = '<div class="loader"></div>'; return; }
+  $('#artistGrid').innerHTML = DATA.artists.map(a => {
+    const t = tourOf('a:' + a.id), tot = totalStars(t), max = t.stations.length * 3, done = doneCount(t) === t.stations.length;
+    const img = a.c ? cover(a, 250) : '';
+    return `<button class="artist ${done ? 'done' : ''}" data-a="${a.id}">
+      <span class="a-cv">${img ? `<img src="${img}" alt="" loading="lazy">` : '🎤'}${done ? '<span class="a-done">✓</span>' : ''}</span>
+      <b>${esc(a.A)}</b><small>${tot ? `⭐ ${tot}/${max}` : tx('{n} Stationen', { n: t.stations.length })}</small>
+      <i class="bar"><b style="width:${(tot / max * 100).toFixed(1)}%"></b></i></button>`;
+  }).join('');
 }
 
 /* ---------- Station antippen ---------- */
 const stSheet = $('#sheetStation');
-function openStation(i) {
-  const st = STATIONS[i], n = +starsOf()[st.id] || 0, locked = i >= openCount();
+let sheetAt = null;   // [Tour-id, Nr.]
+function openStation(tid, i) {
+  const t = tourOf(tid), st = t.stations[i], n = starOf(t, i), locked = i >= openCount(t);
+  sheetAt = [tid, i];
   $('#stTitle').textContent = tx('Station {n}', { n: i + 1 });
-  $('#stHero').innerHTML = `<span class="st-ic">${st.icon}</span><b>${esc(stLabel(st))}</b><span>${esc(tx(st.theme))}</span>
+  $('#stHero').innerHTML = `${st.img ? `<img class="st-img" src="${st.img}" alt="">` : `<span class="st-ic">${st.icon}</span>`}<b>${esc(t.kind === 'artist' ? t.artist.A : st.label())}</b><span>${esc(st.sub())}</span>
     <span class="st-stars">${[0, 1, 2].map(k => `<i class="${k < n ? 'on' : ''}">★</i>`).join('')}</span>`;
   $('#stInfo').innerHTML = [
-    ['🎧', tx('6 Aufgaben mit Musik'), tx('Erkennen, Älter oder neuer, Hit or Miss und Gold-Fragen')],
+    ['🎧', tx('6 Aufgaben mit Musik'), t.kind === 'artist' ? tx('Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre') : tx('Erkennen, Älter oder neuer, Hit or Miss und Gold-Fragen')],
     ['⭐', tx('Sterne'), tx('1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6')],
-    ['📅', tx('Songs aus der Zeit'), st.y[0] === st.y[1] ? String(st.y[0]) : `${st.y[0]}–${Math.min(st.y[1], new Date().getFullYear())}`],
-  ].map(([ic, t, sub]) => `<div class="cell"><span class="cell-ic ach-ic">${ic}</span><span class="grow">${t}<span class="sub">${esc(sub)}</span></span></div>`).join('');
-  const prev = STATIONS[i - 1];
-  $('#stFoot').textContent = locked ? tx('Noch zu: Hol erst einen Stern in {s}.', { s: stLabel(prev) }) : n === 3 ? tx('Alle Sterne geholt – du kannst die Station trotzdem jederzeit nochmal spielen.') : n ? tx('Beliebig oft spielbar – es zählt dein bester Wert.') : '';
+    ['📅', t.kind === 'artist' ? tx('Songs aus diesen Jahren') : tx('Songs aus der Zeit'), yrs([st.y[0], Math.min(st.y[1], new Date().getFullYear())])],
+  ].map(([ic, tt, sub]) => `<div class="cell"><span class="cell-ic ach-ic">${ic}</span><span class="grow">${tt}<span class="sub">${esc(sub)}</span></span></div>`).join('');
+  const prev = t.stations[i - 1];
+  $('#stFoot').textContent = locked ? tx('Noch zu: Hol erst einen Stern in {s}.', { s: prev.label() }) : n === 3 ? tx('Alle Sterne geholt – du kannst die Station trotzdem jederzeit nochmal spielen.') : n ? tx('Beliebig oft spielbar – es zählt dein bester Wert.') : '';
   $('#stStart').disabled = locked;
-  $('#stStart').dataset.i = i;
   $('#stStartLbl').textContent = locked ? tx('Noch nicht offen') : n ? tx('Nochmal spielen') : tx('Station starten');
-  stSheet.showModal();
+  if (!stSheet.open) stSheet.showModal();
 }
 
 /* ---------- Töne & Konfetti ---------- */
@@ -559,10 +640,11 @@ function goMap() {
   stopAudio();
   if (G && !G.ended) G.ended = true;
   const idx = G?.idx;
+  if (G) view = G.tid;   // zurück zur Karte der Tour, in der gespielt wurde
   G = null;
   show('home');
   renderHome();
-  const target = fresh?.opened ? STATIONS.findIndex(s => s.id === fresh.opened) : idx ?? openCount() - 1;
+  const t = curTour(), target = !t ? 0 : fresh?.opened ? t.stations.findIndex(s => s.sid === fresh.opened) : idx ?? openCount(t) - 1;
   requestAnimationFrame(() => scrollToStation(target));
   setTimeout(() => { fresh = null; $$('#map .stn.fresh,#map .stn.opened').forEach(el => el.classList.remove('fresh', 'opened')); }, 3200);
 }
@@ -579,7 +661,7 @@ function renderSettings() {
   $('#subHelp').textContent = [opt.sfx ? 'Töne an' : 'Töne aus', opt.vib ? 'Vibration an' : 'Vibration aus'].map(s => tx(s)).join(' · ');
   $('#subDesign').textContent = tx((THEMES.find(x => x[0] === opt.theme) || THEMES[0])[1]);
   $('#langSel').innerHTML = langOptions();
-  $('#subStats').textContent = tx('{n} von {m} Sternen', { n: totalStars(), m: STATIONS.length * 3 }) + ' · ' + tx('{n} Stationen geschafft', { n: doneCount() });
+  $('#subStats').textContent = tx('{n} von {m} Sternen', { n: totalStars(tourOf()), m: STATIONS.length * 3 }) + ' · ' + tx('{n} Stationen geschafft', { n: doneCount(tourOf()) });
   if (DATA) $('#streamsInfo').textContent = tx('Spotify-Streams von kworb.net, Stand {d}. Die Zahlen wachsen – darum gibt es nur „über …“-Fragen.', { d: fmtDate(DATA.streamsAt) });
   $('#appVersion').innerHTML = `On Tour · ${tx('Version')} ${APP_VERSION} · ${APP_DATE}<span>${tx('Neuerungen ansehen')} ›</span>`;
   applyTheme(); applyVol();
@@ -628,9 +710,12 @@ async function renderChanges() {
 }
 
 /* ---------- Ereignisse ---------- */
-$('#map').onclick = e => { const b = e.target.closest('.stn'); if (b) openStation(+b.dataset.i); };
-$('#nextBtn').onclick = () => { const i = +$('#nextBtn').dataset.i; if (i >= 0) startStation(i); };
-$('#stStart').onclick = () => { const i = +$('#stStart').dataset.i; stSheet.close(); startStation(i); };
+$('#map').onclick = e => { const b = e.target.closest('.stn'); if (b && curTour()) openStation(curTour().id, +b.dataset.i); };
+$('#tourTabs').onclick = e => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); };
+$('#artistGrid').onclick = e => { const b = e.target.closest('[data-a]'); if (b) { setView('a:' + b.dataset.a); const t = curTour(); if (totalStars(t)) requestAnimationFrame(() => scrollToStation(openCount(t) - 1)); } };
+$('#backArtists').onclick = () => setView('artists');
+$('#nextBtn').onclick = () => { const i = +$('#nextBtn').dataset.i; if (i >= 0 && curTour()) startStation(curTour().id, i); };
+$('#stStart').onclick = () => { const [tid, i] = sheetAt; stSheet.close(); startStation(tid, i); };
 stSheet.addEventListener('click', e => { if (e.target === stSheet || e.target.closest('[data-close]')) stSheet.close(); });
 $('#qOpts').onclick = e => {
   const pl = e.target.closest('.tile-play');
@@ -639,8 +724,8 @@ $('#qOpts').onclick = e => {
 };
 $('#qBody').onclick = e => { const p = e.target.closest('[data-play]'); if (p && DATA) { const s = DATA.byId.get(+p.dataset.play); if (active._id === s.i && !active.paused && G?.answered) stopAudio(); else playSong(s); } };
 $('#qNext').onclick = nextQ;
-$('#goNextBtn').onclick = () => { const i = G.idx + 1, t = G.tour; G = null; startStation(i, t); };
-$('#againBtn').onclick = () => { const i = G.idx, t = G.tour; G = null; startStation(i, t); };
+$('#goNextBtn').onclick = () => { const i = G.idx + 1, t = G.tid; G = null; startStation(t, i); };
+$('#againBtn').onclick = () => { const i = G.idx, t = G.tid; G = null; startStation(t, i); };
 $('#mapBtn').onclick = goMap;
 $('#endList').onclick = e => {
   const r = e.target.closest('[data-play]'); if (!r || !DATA) return;
@@ -680,12 +765,12 @@ $('#btnResetAll').onclick = async () => {
 self.liveLang = () => {
   if (!$('#home').classList.contains('hidden')) renderHome();
   if (sheet.open) { renderSettings(); goPage($('#sheetSettings .page.active')?.dataset.page || 'main'); }
-  if (stSheet.open) openStation(+$('#stStart').dataset.i);
+  if (stSheet.open && sheetAt) openStation(...sheetAt);
   if (G && !$('#game').classList.contains('hidden')) {
     const was = G.answered, log = G.log[G.n];
     if (!was) renderQ();
-    else { $('#qKind').textContent = tx(KIND[curQ().k][0]) + ' · ' + tx('Aufgabe {n} von {m}', { n: G.n + 1, m: G.qs.length }); $('#qTitle').textContent = tx(KIND[curQ().k][1]); $('#qNextLbl').textContent = G.n >= G.qs.length - 1 ? tx('Zum Ergebnis') : tx('Weiter'); void log; }
-    $('#gStation').textContent = `${G.st.icon} ${stLabel(G.st)}`;
+    else { const [k, t] = kindText(curQ()); $('#qKind').textContent = k + ' · ' + tx('Aufgabe {n} von {m}', { n: G.n + 1, m: G.qs.length }); $('#qTitle').textContent = t; $('#qNextLbl').textContent = G.n >= G.qs.length - 1 ? tx('Zum Ergebnis') : tx('Weiter'); void log; }
+    $('#gStation').textContent = `${G.st.icon} ${G.st.label()}`;
   }
   if (G && !$('#end').classList.contains('hidden')) renderEndList();
 };
@@ -699,10 +784,10 @@ document.addEventListener('keydown', e => {
   const n = +e.key;
   if (n >= 1 && n <= btns.length) { e.preventDefault(); answer(btns[n - 1].dataset.v); }
 });
-addEventListener('resize', () => { if (!$('#home').classList.contains('hidden')) renderMap(); fitClaim(); });
+addEventListener('resize', () => { if (!$('#home').classList.contains('hidden') && curTour()) renderMap(curTour()); fitClaim(); });
 
 /* ---------- Start ---------- */
 applyTheme(); applyVol(); renderHome();
-if (totalStars()) requestAnimationFrame(() => scrollToStation(Math.max(0, openCount() - 1)));   // Neulinge sehen zuerst die Erklärung
+{ const t = curTour(); if (t && totalStars(t)) requestAnimationFrame(() => scrollToStation(Math.max(0, openCount(t) - 1))); }   // Neulinge sehen zuerst die Erklärung
 loadData().catch(() => {});
 addEventListener('jukebox-sync', () => { if (!G) renderHome(); if (sheet.open) renderSettings(); });

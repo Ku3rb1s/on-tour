@@ -1,7 +1,7 @@
 /* On Tour – nur das, was es in der Basis (css/base.css) nicht gibt
-   Farben wie das Logo „Tourplan“: Bernstein = Sterne und Ziel, Türkis = Straße, Nachtblau = Hintergrund */
-:root{--gold:#fbbf24;--gold2:#fde68a;--teal:#14b8a6;--teal2:#99f6e4;--ok:#10b981;--ok2:#a7f3d0;--bad:#fb7185;--bad2:#fecdd3;
-  --accent:#f59e0b;--road1:#14b8a6;--road2:#fbbf24}
+   Farben wie das Logo „Tour-Ticket“: Gold = Sterne und Ziel, Koralle = Straße und Hinweise, Weinrot im Logo */
+:root{--gold:#fbbf24;--gold2:#fde68a;--teal:#fb7185;--teal2:#fecdd3;--ok:#10b981;--ok2:#a7f3d0;--bad:#ef4444;--bad2:#fca5a5;
+  --accent:#f59e0b;--road1:#fb7185;--road2:#fbbf24}
 .center{text-align:center}
 main{max-width:640px}
 header{max-width:640px}
@@ -25,7 +25,7 @@ button.big{color:#2a1700}
 
 /* ---------- Karte ---------- */
 .map-wrap{position:relative;margin:14px 0 0;border-radius:28px;overflow:hidden;
-  background:radial-gradient(circle at 20% 15%,rgba(20,184,166,.10),transparent 45%),radial-gradient(circle at 85% 70%,rgba(251,191,36,.08),transparent 45%),rgba(var(--surf),.35);
+  background:radial-gradient(circle at 20% 15%,rgba(251,113,133,.10),transparent 45%),radial-gradient(circle at 85% 70%,rgba(251,191,36,.08),transparent 45%),rgba(var(--surf),.35);
   border:1px solid var(--line)}
 .road{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .road path{fill:none;stroke-linecap:round;stroke-linejoin:round}
@@ -263,3 +263,30 @@ html.ios .vol-game input,html.ios .vol-game #volVal{display:none}
   .song{padding:10px;gap:10px}
   .cv{width:60px;height:60px}
 }
+
+/* ---------- Touren-Auswahl (Haupt-Tour / Künstler) ---------- */
+.tour-tabs{margin:0 0 12px}
+.tour-tabs button{font-size:.95rem}
+.tour-head{position:relative}
+.back-artists{display:flex;margin:-6px 0 6px;align-items:center;gap:2px;font-size:.85rem;text-decoration:none;color:var(--muted);z-index:2}
+.back-artists .ic{width:1.1em;height:1.1em}
+.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:14px}
+.artist-grid>.loader{grid-column:1/-1;margin:30px auto}
+.artist{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 10px 12px;border-radius:22px;text-align:center;white-space:normal;
+  background:linear-gradient(165deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid var(--line);color:var(--text);box-shadow:none;font-weight:600}
+.artist .a-cv{position:relative;width:84px;height:84px;border-radius:50%;overflow:visible;display:grid;place-items:center;font-size:2rem;margin-bottom:6px;
+  background:#111;box-shadow:0 0 0 3px var(--teal),0 10px 24px -10px #000}
+.artist .a-cv img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.artist.done .a-cv{box-shadow:0 0 0 3px var(--gold),0 10px 24px -10px #000}
+.a-done{position:absolute;right:-4px;bottom:-4px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.85rem;font-weight:900;background:var(--gold);color:#2a1700}
+.artist>b{font-family:Outfit,system-ui,sans-serif;font-size:1rem;line-height:1.15;overflow-wrap:anywhere}
+.artist small{font-size:.78rem;color:var(--muted)}
+.artist .bar{width:80%;height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:4px}
+.artist .bar b{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--gold))}
+.artist:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.artist:hover{border-color:rgba(255,255,255,.22)}}
+/* Künstler-Stationen: Cover statt Symbol im Punkt */
+.stn .dot img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.stn.locked .dot img{filter:grayscale(1) brightness(.5)}
+.st-hero .st-img{width:96px;height:96px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 3px var(--gold),0 12px 28px -10px #000;margin-bottom:6px}
+@media (max-width:380px){.artist-grid{grid-template-columns:1fr 1fr;gap:8px}.artist .a-cv{width:70px;height:70px}}
