@@ -252,6 +252,8 @@
     "Techno & Eurodance": "Techno y eurodance",
     "Teilen": "Compartir",
     "Tiere": "Animales",
+    "Winter & Weihnachten": "Invierno y Navidad",
+    "Essen & Trinken": "Comida y bebida",
     "Tippe auf „Hinzufügen“.": "Toca «Añadir».",
     "Tippe auf „Teilen“": "Toca «Compartir»",
     "Tippen: nochmal von vorn": "Toca: desde el principio",

@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.2.9 – 08.11.2026
+- Neue Avatare: über 100 weitere Emojis – mehr Tiere, Winter & Weihnachten, Essen & Trinken und mehr
+
 ## 1.2.8 – 08.11.2026
 - Wissensfragen: Kann das Cover die Antwort zeigen (Interpret oder gesuchtes Album darauf), ist es verschwommen – nach dem Antworten wird es scharf und der Interpret erscheint
 

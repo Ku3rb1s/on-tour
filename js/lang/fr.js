@@ -252,6 +252,8 @@
     "Techno & Eurodance": "Techno & eurodance",
     "Teilen": "Partager",
     "Tiere": "Animaux",
+    "Winter & Weihnachten": "Hiver & Noël",
+    "Essen & Trinken": "À boire et à manger",
     "Tippe auf „Hinzufügen“.": "Touche « Ajouter ».",
     "Tippe auf „Teilen“": "Touche « Partager »",
     "Tippen: nochmal von vorn": "Touche : reprendre du début",

@@ -252,6 +252,8 @@
     "Techno & Eurodance": "Techno & Eurodance",
     "Teilen": "Share",
     "Tiere": "Animals",
+    "Winter & Weihnachten": "Winter & Christmas",
+    "Essen & Trinken": "Food & Drink",
     "Tippe auf „Hinzufügen“.": "Tap “Add”.",
     "Tippe auf „Teilen“": "Tap “Share”",
     "Tippen: nochmal von vorn": "Tap: play from the start",
