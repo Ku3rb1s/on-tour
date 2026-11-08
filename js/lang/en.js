@@ -327,6 +327,7 @@
     "Mein Adventskalender {y}": "My Advent calendar {y}",
     "{n} Tage Serie": "{n}-day streak",
     "Mein Adventskalender: {s} ⭐, {d} Tage Serie": "My Advent calendar: {s} ⭐, {d}-day streak",
+    "Mein Adventskalender: {s} ⭐": "My Advent calendar: {s} ⭐",
     "Türchen-Serie": "Door streak",
     "{n} Tage": "{n} days",
     "Türchen geschafft": "Door done",

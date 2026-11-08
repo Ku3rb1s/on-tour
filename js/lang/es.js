@@ -327,6 +327,7 @@
     "Mein Adventskalender {y}": "Mi calendario de Adviento {y}",
     "{n} Tage Serie": "Racha de {n} días",
     "Mein Adventskalender: {s} ⭐, {d} Tage Serie": "Mi calendario de Adviento: {s} ⭐, racha de {d} días",
+    "Mein Adventskalender: {s} ⭐": "Mi calendario de Adviento: {s} ⭐",
     "Türchen-Serie": "Racha de ventanas",
     "{n} Tage": "{n} días",
     "Türchen geschafft": "Ventana superada",

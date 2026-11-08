@@ -1,5 +1,12 @@
 # Neuerungen
 
+## 1.3.1 – 08.11.2026
+- Adventskalender leichter: bekanntere Songs, falsche Jahre weiter weg, bei „Älter oder neuer“ mindestens 10 Jahre Abstand, keine Frage doppelt im Kalender
+- Der erste Versuch eines Türchens ist für alle gleich, beim Wiederholen kommen neue Aufgaben aus dem Türchen (sonst kennt man alle Antworten)
+- Kalender-Runden zählen nicht mehr für die Erfolge und die Statistik der Tour
+- Kurz vor Mitternacht gestartet zählt für die Türchen-Serie noch als „am Tag selbst“; nach dem 6. Januar lässt sich nichts mehr nachholen
+- Abschlussbild wird vorbereitet, damit das Teilen auf dem iPhone sicher klappt
+
 ## 1.3.0 – 08.11.2026
 - **Adventskalender**: Vom 1. bis 24. Dezember öffnet sich in der Jukebox jeden Tag ein Türchen – gespielt wird hier in On Tour: 6 Aufgaben (Tür 24: 10) rund um Weihnachten und Winter, für alle dieselben
 - Themen-Türchen: große Klassiker, Swing-Weihnacht, Nikolaus „Wer singt?“, deutsche Weihnacht, Winterhits, Weihnachten der 2010er, Jahresrückblick und das Heiligabend-Finale mit Bonusstern

@@ -17,13 +17,13 @@ const Advent = (() => {
   const AVATARS = { 6: '🎅🏻', 12: '☃️', 18: '🧑‍🎄', 24: '🌠' };
   const pad = n => String(n).padStart(2, '0');
   const today = () => testDate || new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
-  /** Saison (Jahr des Dezembers) für ein Datum: 25.11.–6.1. – sonst null */
+  /** Saison (Jahr des Dezembers) für ein Datum: 1.11.–6.1. (vor dem 1.12. sind alle Türchen noch zu) – sonst null */
   function season(d = today()) {
     const [y, m, day] = d.split('-').map(Number);
-    return m === 12 ? y : m === 1 && day <= 6 ? y - 1 : m === 11 && day >= 25 ? y : null;
+    return m >= 11 ? y : m === 1 && day <= 6 ? y - 1 : null;
   }
   // Ohne laufende Saison: die letzte (für Statistik und Erfolge)
-  const curYear = () => season() ?? (+today().slice(0, 4) - (today().slice(5) < '11-25' ? 1 : 0));
+  const curYear = () => season() ?? +today().slice(0, 4) - 1;
   const doorDate = (Y, n) => `${Y}-12-${pad(n)}`;
   const isOpen = (Y, n, d = today()) => d >= doorDate(Y, n) && d <= `${Y + 1}-01-06`;
   const daysTo = (a, b) => Math.round((Date.parse(b + 'T12:00:00Z') - Date.parse(a + 'T12:00:00Z')) / 864e5);
@@ -98,10 +98,11 @@ const Advent = (() => {
 
   /* ---------- Ende einer Runde ---------- */
   /** Speichert Sterne (auch 0 = geöffnet), Tag-selbst-Markierung und Avatar. Gibt { stars, had, avatar } zurück */
-  function record(t, n, right, total) {
+  function record(t, n, right, total, startDay = today()) {
     const Y = t.Y, k = sid(Y, n), m = map(), had = m[k] == null ? -1 : +m[k], stars = starsFor(right, total);
     if (stars > had) { m[k] = stars; LS.set('advent', m); }
-    if (today() === doorDate(Y, n)) { const dm = dayMap(); if (!dm[k]) { dm[k] = 1; LS.set('adventDay', dm); } }
+    // am Tag selbst: zählt der Tag, an dem die Runde begann (kurz vor Mitternacht gestartet = am Tag selbst)
+    if (startDay === doorDate(Y, n)) { const dm = dayMap(); if (!dm[k]) { dm[k] = 1; LS.set('adventDay', dm); } }
     let avatar = null;
     const e = AVATARS[n];
     if (e && !Profile.isUnlocked(e)) { Profile.unlock(e); avatar = e; }
@@ -114,8 +115,11 @@ const Advent = (() => {
   }
 
   /* ---------- Türchen-Bildschirm (vor dem Start: ein Tipp entsperrt den Ton auf dem iPhone) ---------- */
-  let door = doorParam >= 1 && doorParam <= DOORS ? doorParam : 0;
+  // ?advent=7 – nur ganze Zahlen 1–24; sonst (kaputter Link) im Dezember das Türchen von heute, sonst Tür 1
+  const fallbackDoor = () => { const d = today(); return d.slice(5, 7) === '12' ? Math.min(+d.slice(8), DOORS) : 1; };
+  let door = Number.isInteger(doorParam) && doorParam >= 1 && doorParam <= DOORS ? doorParam : 0;
   async function showIntro(n = door) {
+    if (!n && season() != null) n = fallbackDoor();
     door = n;
     show('advent');
     const Y = season(), box = $('#advent');
@@ -123,7 +127,7 @@ const Advent = (() => {
     $('#advStart').disabled = true;
     $('#advStars').innerHTML = '';
     if (Y == null || !n) {
-      // außerhalb der Saison (ab 7. Januar oder vor dem 25. November)
+      // außerhalb der Saison (7. Januar bis Ende Oktober)
       $('#advDoor').textContent = '🎄';
       $('#advKicker').textContent = tx('Adventskalender');
       $('#advTitle').textContent = today().slice(5) >= '07-01' ? tx('Bald geht es los') : tx('Der Adventskalender ist vorbei');
@@ -152,18 +156,23 @@ const Advent = (() => {
     $('#advStart').disabled = !open;
     $('#advStartLbl').textContent = !open ? tx('Noch zu') : had != null ? tx('Nochmal spielen') : tx('Türchen öffnen');
   }
+  let starting = false;
   async function start() {
-    if (!door) return;
+    if (!door || starting) return;
     const Y = season(); if (Y == null || !isOpen(Y, door)) return;
     unlockAudio();   // muss direkt im Tipp passieren (iPhone)
+    starting = true;
     $('#loading').classList.remove('hidden');
-    try { await load(); } catch { $('#loading').classList.add('hidden'); return toast(tx('Die Songliste konnte nicht geladen werden.')); }
+    try { await load(); } catch { $('#loading').classList.add('hidden'); starting = false; return toast(tx('Die Songliste konnte nicht geladen werden.')); }
     $('#loading').classList.add('hidden');
-    startStation('advent', door - 1);
+    try { await startStation('advent', door - 1); } finally { starting = false; }
   }
 
   /* ---------- Abschlussbild zum Teilen ---------- */
-  async function shareImage() {
+  /** Bild bauen (1080 × 1350) – fertig vorbereitet, damit das Teilen auf dem iPhone direkt im Tipp starten kann */
+  let prepared = null;
+  const prepareImage = () => (prepared = buildImage());
+  async function buildImage() {
     const s = summary(), W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     try { await document.fonts.load('900 80px Outfit'); await document.fonts.load('600 40px Outfit'); } catch {}
     const x = cv.getContext('2d');
@@ -193,7 +202,12 @@ const Advent = (() => {
     x.fillText('ku3rb1s.github.io/jukebox', W / 2, H - 70);
     const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
     const file = new File([blob], `adventskalender-${s.Y}.png`, { type: 'image/png' });
-    const text = tx('Mein Adventskalender: {s} ⭐, {d} Tage Serie', { s: s.total, d: s.best });
+    const text = s.best ? tx('Mein Adventskalender: {s} ⭐, {d} Tage Serie', { s: s.total, d: s.best }) : tx('Mein Adventskalender: {s} ⭐', { s: s.total });
+    return { blob, file, text };
+  }
+  async function shareImage() {
+    const { blob, file, text } = await (prepared || buildImage());
+    prepared = null;
     if (navigator.canShare?.({ files: [file] })) {
       try { await navigator.share({ files: [file], text }); return; } catch (e) { if (e.name === 'AbortError') return; }
     }
@@ -203,10 +217,11 @@ const Advent = (() => {
 
   /** Zeilen für die Statistik (Einstellungen → Deine Statistik), wenn es Ergebnisse gibt */
   function statRows() {
-    const s = summary();
+    let s = summary();
+    if (!s.done.length) s = summary(s.Y - 1);   // im November: noch die letzte Saison
     if (!s.done.length) return [];
     return [[tx('Adventskalender {y}', { y: s.Y }), `${tx('{n} von 24 Türchen', { n: s.done.length })} · ${s.total} ⭐`], ...(s.best ? [[tx('Türchen-Serie'), tx('{n} Tage', { n: s.best })]] : [])];
   }
   return { active: !!doorParam || params.has('advent'), door: () => door, today, season, isOpen, tour, load, rng, starsFor, starsSub, starRow, maxStars,
-    record, achOk, summary, showIntro, start, shareImage, statRows, calendarUrl, FINAL, AVATARS };
+    record, achOk, summary, showIntro, start, shareImage, prepareImage, statRows, calendarUrl, FINAL, AVATARS };
 })();

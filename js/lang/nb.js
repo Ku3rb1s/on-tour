@@ -327,6 +327,7 @@
     "Mein Adventskalender {y}": "Min julekalender {y}",
     "{n} Tage Serie": "{n} dager på rad",
     "Mein Adventskalender: {s} ⭐, {d} Tage Serie": "Min julekalender: {s} ⭐, {d} dager på rad",
+    "Mein Adventskalender: {s} ⭐": "Min julekalender: {s} ⭐",
     "Türchen-Serie": "Lukerekke",
     "{n} Tage": "{n} dager",
     "Türchen geschafft": "Luken klart",

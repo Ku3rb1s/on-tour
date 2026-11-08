@@ -327,6 +327,7 @@
     "Mein Adventskalender {y}": "Mon calendrier de l’Avent {y}",
     "{n} Tage Serie": "Série de {n} jours",
     "Mein Adventskalender: {s} ⭐, {d} Tage Serie": "Mon calendrier de l’Avent : {s} ⭐, série de {d} jours",
+    "Mein Adventskalender: {s} ⭐": "Mon calendrier de l’Avent : {s} ⭐",
     "Türchen-Serie": "Série de cases",
     "{n} Tage": "{n} jours",
     "Türchen geschafft": "Case réussie",

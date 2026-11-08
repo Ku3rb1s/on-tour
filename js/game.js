@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.3.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.3.1', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd14';
+const DATA_V = 'd15';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -303,11 +303,17 @@ async function startStation(tid, idx) {
   $('#loading').classList.remove('hidden');
   try { await loadData(); } catch { $('#loading').classList.add('hidden'); return toast(tx('Die Songliste konnte nicht geladen werden.')); }
   $('#loading').classList.add('hidden');
-  if (tid === 'advent') try { await Advent.load(); } catch { return toast(tx('Die Songliste konnte nicht geladen werden.')); }
+  if (tid === 'advent') {
+    try { await Advent.load(); } catch { return toast(tx('Die Songliste konnte nicht geladen werden.')); }
+    // auch für „Nochmal“: nur in der Saison und wenn das Türchen offen ist (nach dem 6. Januar nicht mehr)
+    if (Advent.season() == null || !Advent.isOpen(Advent.season(), idx + 1)) { toast(tx('Dieses Türchen lässt sich nicht mehr öffnen.')); return Advent.showIntro(idx + 1); }
+  }
   const t = tourOf(tid), st = t?.stations[idx], pool = st?.pool();
   if (!pool?.length) return toast(tx('Die Songliste konnte nicht geladen werden.'));
-  // Adventskalender: für alle dieselben Aufgaben in derselben Reihenfolge (Startwert aus Jahr und Tür), Tür 24 mit 10 Aufgaben
-  if (t.kind === 'advent') rnd = Advent.rng(`advent-${t.Y}-${st.n}`);
+  // Adventskalender: der erste Versuch ist für alle gleich (Startwert aus Jahr und Tür) – beim Wiederholen neu gezogen,
+  // sonst kennte man alle Antworten schon. Tür 24 mit 10 Aufgaben.
+  const advStart = t.kind === 'advent' ? Advent.today() : null;
+  if (t.kind === 'advent' && starOf(t, idx) === 0 && LS.get('advent', {})?.[st.sid] == null) rnd = Advent.rng(`advent-${t.Y}-${st.n}`);
   const qs = pickQuestions(pool, t.kind === 'advent' && st.n === Advent.FINAL ? 10 : Q_PER_STATION).map(q => {
     // Antworten mischen (die richtige steht im Paket immer vorne)
     if (q.k === 'rec') return { ...q, opts: shuffle([q.s, ...q.o]) };
@@ -320,7 +326,7 @@ async function startStation(tid, idx) {
   });
   rnd = Math.random;
   applyTourColor(t, idx);
-  G = { t, tid, idx, st, qs, n: 0, log: [], right: 0, ended: false, answered: false, before: starOf(t, idx), openBefore: openCount(t), mainBefore: totalStars(tourOf()) };
+  G = { t, tid, idx, st, qs, n: 0, log: [], right: 0, ended: false, answered: false, before: starOf(t, idx), openBefore: openCount(t), mainBefore: totalStars(tourOf()), advStart };
   show('game');
   $('#gStation').textContent = `${st.icon} ${st.label()}`;
   for (const s of songsOfQ(qs[0])) previewOf(DATA.S[s]).catch(() => {});
@@ -509,10 +515,11 @@ function endStation() {
 /* Ende eines Türchens im Adventskalender: Sterne (auch 0 = geöffnet), Serie, Avatar – zurück geht es in den Kalender der Jukebox */
 function endAdvent() {
   const { t, st } = G, n = st.n, total = G.qs.length;
-  const r = Advent.record(t, n, G.right, total), best = Math.max(r.had, r.stars), sum = Advent.summary(t.Y);
+  const r = Advent.record(t, n, G.right, total, G.advStart), best = Math.max(r.had, r.stars), sum = Advent.summary(t.Y);
   fresh = null;
-  recordStats(G);
+  // keine recordStats: Kalender-Runden zählen nicht für die Tour-Statistik und ihre Erfolge (Ergebnis steht in ot.advent)
   const ach = checkAch(G);
+  if (sum.done.includes(Advent.FINAL)) Advent.prepareImage();   // Bild schon jetzt bauen – auf dem iPhone muss das Teilen direkt im Tipp starten
   $('#endStation').textContent = `${st.icon} ${st.label()}`;
   $('#endBest').textContent = tx('Bestwert: {s}', { s: starTxt(best) });
   $('#endKicker').textContent = r.stars >= 3 ? tx('Perfekt!') : r.stars ? tx('Türchen geschafft') : tx('Knapp daneben');
@@ -594,7 +601,7 @@ function checkAch(g) {
   const decDone = d => STATIONS.filter(x => Math.floor(x.year / 10) * 10 === d).every(x => (+s[x.id] || 0) >= 1);
   const st = Sync.view('ot.stats', LS.get('stats', null)) || {}, factsRight = st.types?.fact?.[0] || 0;   // alle Geräte zusammen
   const ok = {
-    first: true, perfect: g.right === g.qs.length && g.qs.length === Q_PER_STATION, sixties: STATIONS.filter(x => x.year < 1970).every(x => (+s[x.id] || 0) >= 1),
+    first: g.t.kind !== 'advent', perfect: g.t.kind !== 'advent' && g.right === g.qs.length && g.qs.length === Q_PER_STATION, sixties: STATIONS.filter(x => x.year < 1970).every(x => (+s[x.id] || 0) >= 1),
     half: done >= 12, all: done >= STATIONS.length, s36: tot >= 36, s72: tot >= STATIONS.length * 3, fan: artistsDone >= 1, fans3: artistsDone >= 3,
     fans5: artistsDone >= 5, fans10: artistsDone >= 10, astar: artistTours.some(t => totalStars(t) === t.stations.length * 3),
     d1970: decDone(1970), d1980: decDone(1980), d1990: decDone(1990), d2000: decDone(2000),
@@ -889,6 +896,7 @@ function ask(text, okLabel, danger = false) {
 function goMap() {
   stopAudio();
   if (G && !G.ended) G.ended = true;
+  if (!G && Advent.active && !$('#advent').classList.contains('hidden')) { location.href = location.pathname; return; }   // Logo auf dem Türchen-Bildschirm: zur Karte von On Tour
   if (G?.t.kind === 'advent' || (!G && Advent.active)) { const n = G?.st.n || Advent.door(); G = null; applyTourColor(null); return Advent.showIntro(n); }
   const idx = G?.idx;
   if (G) { view = G.tid === 'bonus' ? 'main' : G.tid; LS.set('view', view); }   // zurück zur Karte der Tour, in der gespielt wurde (bleibt nach dem Neuladen)

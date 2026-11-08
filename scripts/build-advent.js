@@ -7,7 +7,8 @@
    2. Für jedes der 24 Türchen ein Aufgaben-Vorrat (wie die Stationen in scripts/build-data.js): 12 Aufgaben (Tür 24: 16),
       im Spiel kommen davon 6 dran (Tür 24: 10) – gezogen mit einem Startwert aus Jahr und Tür (js/game.js), für alle gleich.
    Zwischenspeicher: scripts/.cache/advent-dz.json (Deezer), scripts/.cache/advent-mb.json (MusicBrainz).
-   Playlists neu von Deezer holen (sie ändern sich): --refresh. Ohne Netz: --offline.
+   Die Türchen sollen die ganze Saison gleich bleiben: Steht data/advent.json schon da, bleibt sie, wie sie ist –
+   neu bauen (z. B. für das nächste Jahr, vor dem 1. November): --neu. Playlists neu von Deezer holen: --refresh (baut auch neu). Ohne Netz: --offline.
    Ergebnis: data/advent.json, Bericht scripts/.cache/advent-report.txt. Danach DATA_V in js/game.js erhöhen.
 
    advent.json:
@@ -207,14 +208,16 @@ const L = [];   // Bericht
 const lerp = (a, b, k) => a + (b - a) * k;
 const shuffle = (a, R) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 let titleArt = new Map();   // Titel-Schlüssel → Interpreten, die ihn singen (aus allen gesammelten Songs)
-const orderOk = (a, b, gap = 3) => !!(a.q && b.q) && a.ak !== b.ak && Math.abs(a.y - b.y) >= gap;
+// Leicht gehalten (es geht um Weihnachten): „Älter oder neuer“ nur bei deutlichem Abstand – GAP je Tür (build)
+let GAP = 10;
+const orderOk = (a, b, gap = GAP) => !!(a.q && b.q) && a.ak !== b.ak && a.tk !== b.tk && Math.abs(a.y - b.y) >= gap;
 const near = (s, o, win) => !s.y || !o.y || Math.abs(s.y - o.y) <= win;
 const wordsIn = (a, b) => HM.words(a).includes(HM.words(b)) || HM.words(b).includes(HM.words(a));
 /** n falsche Titel (als Songs) aus dem Vorrat: andere Interpreten, kein ähnlicher Titel, bevorzugt aus derselben Zeit */
 function falseTitles(s, n, pool, R) {
   const fine = o => o !== s && o.tk !== s.tk && o.ak !== s.ak && o.T.length <= 40 && !wordsIn(o.T, s.T) && !titleArt.get(o.tk)?.has(s.ak);
   const out = [];
-  for (const win of [15, 30, 99]) for (const o of shuffle(pool, R)) {
+  for (const win of [99]) for (const o of shuffle(pool, R)) {
     if (out.length >= n) break;
     if (fine(o) && near(s, o, win) && !out.includes(o) && !out.some(x => x.tk === o.tk || wordsIn(x.T, o.T))) out.push(o);
   }
@@ -224,7 +227,7 @@ function falseTitles(s, n, pool, R) {
 function falseArtists(s, n, pool, R) {
   const bad = A => HM.key(A) === s.ak || HM.related(A, s.parts) || titleArt.get(s.tk)?.has(HM.key(A));
   const out = [];
-  for (const win of [15, 30, 99]) for (const o of shuffle(pool, R)) {
+  for (const win of [99]) for (const o of shuffle(pool, R)) {
     if (out.length >= n) break;
     if (!bad(o.A) && near(s, o, win) && !out.some(x => HM.key(x) === o.ak || HM.related(x, [o.A]))) out.push(o.A);
   }
@@ -233,8 +236,8 @@ function falseArtists(s, n, pool, R) {
 /** 3 falsche Jahre (nah am echten, mindestens 2 auseinander, nicht in der Zukunft) */
 function falseYears(s, R) {
   if (!s.q) return null;
-  const offs = shuffle([-5, -4, -3, -2, -1, 1, 2, 3, 4, 5], R).filter(d => s.y + d <= 2026 && s.y + d >= 1930), pick = [];
-  for (const d of offs) { if (pick.length >= 3) break; if (!pick.some(x => Math.abs(x - d) < 2)) pick.push(d); }
+  const offs = shuffle([-12, -10, -8, -6, -4, 4, 6, 8, 10, 12], R).filter(d => s.y + d <= 2026 && s.y + d >= 1930), pick = [];
+  for (const d of offs) { if (pick.length >= 3) break; if (!pick.some(x => Math.abs(x - d) < 4)) pick.push(d); }
   return pick.length === 3 ? pick.map(d => s.y + d) : null;
 }
 /** Behauptung wie in Hit or Miss: ist von …, heißt …, ist älter/neuer als …, über … Streams */
@@ -259,6 +262,7 @@ const TYPES = ['rec', 'rec', 'rec', 'old', 'old', 'claim', 'claim', 'claim', 'wh
 const FINAL_TYPES = [...TYPES, 'rec', 'old', 'claim', 'claim', 'who', 'year'];
 const WHO_TYPES = Array(11).fill('who');
 /** Aufgaben eines Türchens: core = Songs für die Aufgaben (beste zuerst), pool = woraus falsche Antworten kommen */
+const ASKED = new Set();   // „Song|Art“ schon in einem Türchen dran – nicht dieselbe Frage zweimal im Kalender
 function makeTasks(door, core, pools, types, R) {
   const P = s => typeof pools === 'function' ? pools(s) : pools;
   const prim = new Set(), qs = [], wants = shuffle([true, false, true, false, R() < .5, R() < .5], R);
@@ -266,7 +270,7 @@ function makeTasks(door, core, pools, types, R) {
   for (const type of types) {
     let q = null;
     const free = core.filter(s => !prim.has(s.i));
-    for (const s of free.slice(0, 18)) {
+    for (const s of free.filter(x => !ASKED.has(x.i + '|' + type)).slice(0, 18)) {
       const pool = P(s);
       if (type === 'rec') { const o = falseTitles(s, 3, pool, R); if (o) q = { k: 'rec', s, o }; }
       else if (type === 'old') {
@@ -280,6 +284,7 @@ function makeTasks(door, core, pools, types, R) {
     if (!q && type === 'year') for (const s of free.slice(0, 18)) { const o = falseArtists(s, 3, P(s), R); if (o) { q = { k: 'who', s, o }; break; } }
     if (!q) { L.push(`  ⚠️ Tür ${door}: keine Aufgabe „${type}“ gefunden`); continue; }
     if (type === 'claim') nc++;
+    ASKED.add((q.s || q.a).i + '|' + q.k);
     for (const s of [q.s, q.a, q.b].filter(Boolean)) prim.add(s.i);
     qs.push(q);
   }
@@ -295,6 +300,10 @@ const THEME = { 1: 'Die großen Klassiker', 4: 'Swing-Weihnacht', 6: 'Nikolaus: 
 const MIX = 'Weihnachtsmix';
 
 (async () => {
+  if (!ARGS.includes('--neu') && !REFRESH && fs.existsSync(path.join(ROOT, 'data', 'advent.json'))) {
+    console.log('Adventskalender: data/advent.json bleibt, wie sie ist (die Türchen sollen die Saison über gleich bleiben). Neu bauen: --neu');
+    return;
+  }
   const entries = await collect();
   // Streams (Mio.) aus der Milliarden-Liste von Needle Drop – nach Deezer-ID, sonst nach Titel und Interpret
   const BN = readJson(path.join(DOCS, 'Musik-Quiz', 'data', 'billions.json'), { tracks: [] }).tracks;
@@ -330,7 +339,7 @@ const MIX = 'Weihnachtsmix';
     }
     return out;
   };
-  const XM = capped(xmas.filter(s => !s.de), 115, 4, 2);
+  const XM = capped(xmas.filter(s => !s.de), 100, 4, 2);
   const DE = capped(xmas.filter(s => s.de).sort((a, b) => germanTitle(b.T) - germanTitle(a.T) || b.score - a.score), 26, 4, 1);
   for (const s of DE) s.tags.add('de');
   const WIN = all.filter(s => s.tags.has('w') && !NO_PREVIEW.has(s.i));
@@ -342,7 +351,7 @@ const MIX = 'Weihnachtsmix';
   // Jahreshits: nur bekannte Namen – Interpreten mit mindestens 3 Songs in Hit or Miss oder Songs über 1 Mrd. Streams (sonst landen Eintagsfliegen aus fremden Charts drin)
   const homCount = HOM.tracks.reduce((m, t) => m.set(t.a, (m.get(t.a) || 0) + 1), new Map());
   const YH = await byRank(HOM.tracks.filter(t => t.y >= 2025 && homPick(t) && t.f < 120 && (homCount.get(t.a) >= 3 || bnById.get(t.i) >= 1e9)).map(t => homSong(t, 'y')), 20);
-  const YH_OLD = await byRank(HOM.tracks.filter(t => t.y >= 2015 && t.y <= 2022 && homPick(t) && t.f < 120).map(t => homSong(t, 'v')), 16);   // nur Vergleich in Tür 20
+  const YH_OLD = await byRank(HOM.tracks.filter(t => t.y >= 2005 && t.y <= 2017 && homPick(t) && t.f < 120).map(t => homSong(t, 'v')), 16);   // nur Vergleich in Tür 20
   for (const s of [...YH, ...YH_OLD]) { s.score = s.rank / 1e6; (titleArt.get(s.tk) || titleArt.set(s.tk, new Set()).get(s.tk)).add(s.ak); }
 
   // Mitwirkende laut Deezer (Duette, Gäste) – damit ein Beteiligter nie als falsche Antwort kommt
@@ -387,18 +396,20 @@ const MIX = 'Weihnachtsmix';
   build(4, byUse(S.sw), [...S.sw, ...XM.filter(s => s.q && s.y < 1975)], TYPES);
   build(10, DE, DE, TYPES);
   build(13, WIN, WIN, TYPES);
-  build(17, byUse(S.s10), XM.filter(s => !s.q || s.y >= 2000), TYPES);
-  build(20, YH, [...YH, ...YH_OLD], TYPES);
+  GAP = 6; build(17, byUse(S.s10), XM.filter(s => !s.q || s.y >= 1990), TYPES); GAP = 10;
+  GAP = 8; build(20, YH, [...YH, ...YH_OLD], TYPES); GAP = 10;
   build(6, byUse(XM.slice(0, 70)).slice(0, 30), XM, WHO_TYPES);
   const mixDoors = Array.from({ length: 23 }, (_, i) => i + 1).filter(n => !THEME[n]);
   mixDoors.forEach((n, k) => {
     // Schwierigkeit steigt: frühe Türchen bekanntere Songs (vorn in XM), späte auch unbekanntere
-    const target = lerp(.08, .7, k / (mixDoors.length - 1)) * XM.length;
-    const core = [...XM].sort((a, b) => used(a) - used(b) || Math.abs(XM.indexOf(a) - target) - Math.abs(XM.indexOf(b) - target)).slice(0, 18);
+    const target = lerp(.03, .45, k / (mixDoors.length - 1)) * XM.length;
+    // bekannte Songs zuerst: ein schon benutzter Song zählt wie 12 Plätze weiter hinten (große Hits dürfen öfter vorkommen)
+    const cost = x => used(x) * 12 + Math.abs(XM.indexOf(x) - target);
+    const core = [...XM].sort((a, b) => cost(a) - cost(b) || XM.indexOf(a) - XM.indexOf(b)).slice(0, 18);
     build(n, core, XM, TYPES);
   });
   // Heiligabend: 16 Aufgaben aus allem (weniger bekannte Songs, auch deutsche), schwerer
-  const xs = byUse(XM.slice(30)), ds = byUse(DE), mixed = [];
+  const xs = byUse(XM.slice(10, 70)), ds = byUse(DE), mixed = [];
   while (mixed.length < 30 && (xs.length || ds.length)) { if (xs.length) mixed.push(xs.shift()); if (xs.length) mixed.push(xs.shift()); if (ds.length) mixed.push(ds.shift()); }
   build(24, mixed, s => s.de ? DE : XM, FINAL_TYPES);
 
