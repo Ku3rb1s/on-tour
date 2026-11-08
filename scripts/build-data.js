@@ -62,6 +62,9 @@ for (const s of grAll) {
 // Bekanntheit neu über alle Songs: Deezer-Rang aus Gold Record, 0 = größter Hit … 999
 const rank = t => grById.get(t.i)?.r || 0;
 [...tracks].sort((a, b) => rank(b) - rank(a) || a.i - b.i).forEach((t, i, arr) => { t.f = Math.floor(i / arr.length * 1000); });
+// Songs ohne 30-s-Ausschnitt bei Deezer (scripts/check-previews.js) kommen nicht vor – sonst bliebe eine Aufgabe stumm
+const NO_PREVIEW = new Set(readJson(path.join(__dirname, '.cache', 'no-preview.json'), []));
+for (let i = tracks.length - 1; i >= 0; i--) if (NO_PREVIEW.has(tracks[i].i)) tracks.splice(i, 1);
 const data = { built: HOM.built, streamsAt: HOM.streamsAt, artists, rel: HOM.rel, tracks };
 const D = HM.prepare(data, new Date(HOM.built));
 // „de“ heißt bei Gold Record: aus deutschen Playlists – da sind auch Usher und France Gall dabei. Deutsch singt, wer nur dort
@@ -252,8 +255,9 @@ function keepStation(name, st) {
       else if (e.k === 'old') q = { k: 'old', a: S(e.a), b: S(e.b) };
       else if (e.k === 'who' || e.k === 'year' || e.k === 'feat') q = { ...e, s: S(e.s) };
       else if (e.k === 'claim') q = { k: 'claim', s: S(e.s), c: { ...e.c, ...(e.c.o != null ? { o: S(e.c.o) } : {}) } };
-      const songs = [q.s, q.a, q.b, ...(q.k === 'rec' ? q.o : []), q.c?.o].filter(x => x !== undefined);
-      if (songs.some(x => !x)) throw new Error('Song fehlt');
+      // jede Nummer, die die Aufgabe nennt, muss noch einen Song im Pool haben (fehlende nicht einfach überspringen)
+      const refs = [e.s, e.a, e.b, ...(e.k === 'rec' ? e.o : []), e.c?.o].filter(x => x != null);
+      if (refs.some(i => !S(i))) throw new Error('Song fehlt');
       if (q.k === 'old' && !orderOk(q.a, q.b)) throw new Error('Jahre');
       if (q.k === 'year' && !falseYears(q.s, Math.random)) throw new Error('Jahr');
       if (q.k === 'claim') { const c = { ...q.c, s: q.s, hide: null }; if (!HM.verify(c)) throw new Error('Behauptung'); q.c = c; }
@@ -286,8 +290,7 @@ const STARS = ['The Beatles', 'Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Lin
   'Lady Gaga', 'David Guetta', 'Avicii', 'Kygo', 'Bruno Mars', 'Ed Sheeran', 'Taylor Swift', 'The Weeknd', 'Drake', 'Billie Eilish', 'Bad Bunny',
   '50 Cent', 'Justin Bieber', 'Travis Scott', 'Post Malone', 'Juice WRLD'];
 // Wissensfragen je Star (von Hand, recherchiert und geprüft): zu den Stars (facts.js) und zu einzelnen Songs (facts-songs.js)
-const FACTS = {};
-for (const part of [require('./facts.js'), require('./facts-songs.js')]) for (const [a, l] of Object.entries(part)) (FACTS[a] ||= []).push(...l);
+const FACTS_GEN = require('./facts.js'), FACTS_SONG = require('./facts-songs.js');
 const WANT_SONGS = 48, OFFLINE = process.argv.includes('--offline');
 const slug = a => String(a).normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const DZ_CACHE = path.join(__dirname, '.cache', 'deezer-artists.json');
@@ -326,7 +329,7 @@ async function songsOfStar(name) {
       if (list.length >= WANT_SONGS) break;
       const extra = String(t.title).replace(/^[^([\-–—]*/, '');
       const T = HM.cleanTitle(t.title), tk = HM.titleKey(t.title);
-      if (!T || T.length > 40 || XMAS.test(t.title) || EXTRA_PART.test(extra) || NOT_A_SONG.test(t.title) || t.artist.id !== found.id) continue;   // nur Songs, bei denen der Star Hauptinterpret ist
+      if (!T || T.length > 40 || XMAS.test(t.title) || EXTRA_PART.test(extra) || NOT_A_SONG.test(t.title) || !t.preview || t.artist.id !== found.id) continue;   // nur Songs, bei denen der Star Hauptinterpret ist
       if (list.some(s => s.tk === tk || HM.words(s.T).includes(HM.words(T)) || HM.words(T).includes(HM.words(s.T)))) continue;
       const alb = await dz('/album/' + t.album.id);
       let y = +String(alb?.release_date || '').slice(0, 4) || 0;
@@ -374,6 +377,7 @@ async function buildArtist(name) {
     // ergänzter Deezer-Song, der eindeutig auf einem Studioalbum liegt: bekommt dessen (geprüftes) Jahr und taugt auch für Jahresfragen
     if (s.dz && hit) { s.y = s.ylo = s.yhi = hit.y; s.q = 1; s.ay = true; }
     const y = s.q >= 1 || s.dz ? s.y : 0;
+    s.exact = !!hit;
     s.era = hit || (y ? [...albums].reverse().find(a => a.y <= y) || albums[0] : null);
   }
   let eras = albums.map(a => ({ albums: [a], songs: all.filter(s => s.era === a) }));
@@ -412,23 +416,54 @@ async function buildArtist(name) {
     const ys = eras[ci].albums.map(a => a.y);
     return { y: [Math.min(...ys), Math.max(...ys)], al: eras[ci].albums.map(a => a.t), ay: eras[ci].albums.map(a => a.y), qs };
   });
-  // Wissensfragen (scripts/facts.js) an die Stationen hängen.
-  // Dabei läuft der genannte Song – oder ein bekannter Song des Stars, der nicht unter den Antworten steht.
-  const optTxt = o => typeof o === 'string' ? [o] : Object.values(o), placed = [];
-  for (const fq of FACTS[name] || []) {
+  // Wissensfragen: zu einzelnen Songs (facts-songs.js) in die Ära, in deren Jahre sie fallen; allgemeine zum Star (facts.js)
+  // in die Zugabe. Dabei läuft der genannte Song – oder ein bekannter Song des Stars, der nicht unter den Antworten steht.
+  const optTxt = o => typeof o === 'string' ? [o] : Object.values(o);
+  const factQ = fq => {
     const words = fq.o.flatMap(optTxt).map(x => HM.words(x));
     const safe = x => !words.some(w => w.includes(HM.words(x.T)));
     const song = all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
-    if (!song) { L.push(`  ⚠️ ${name}: kein Song für „${fq.q.de}“`); continue; }
+    if (!song) { L.push(`  ⚠️ ${name}: kein Song für „${fq.q.de}“`); return null; }
     if (song.tk !== HM.titleKey(fq.s)) L.push(`  ↪ ${name}: „${fq.s}“ nicht da – dazu läuft „${song.T}“`);
-    placed.push({ k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y });
+    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y };
+  };
+  for (const q of (FACTS_SONG[name] || []).map(factQ).filter(Boolean)) {
+    const d = st => q.y < st.y[0] ? st.y[0] - q.y : q.y > st.y[1] ? q.y - st.y[1] : 0;
+    stations.reduce((b, st) => d(st) < d(b) ? st : b, stations[0]).qs.push(q); delete q.y;
   }
-  // nach Jahr geordnet gleichmäßig auf die Stationen verteilt (sonst hätten frühe Stationen alle Fragen)
-  // zur Ära, in deren Jahre die Frage fällt (sonst die nächstliegende)
-  for (const q of placed) { const d = st => q.y < st.y[0] ? st.y[0] - q.y : q.y > st.y[1] ? q.y - st.y[1] : 0; stations.reduce((b, st) => d(st) < d(b) ? st : b, stations[0]).qs.push(q); delete q.y; }
+  /* Zugabe: letzte Station – allgemeine Fragen zum Star und Album-Quiz aus den geprüften Diskografien (scripts/artists.js):
+     „Auf welchem Album ist …?“ (nur Songs, die bei Deezer genau auf diesem Studioalbum liegen) und „In welchem Jahr erschien …?“ */
+  const encore = (FACTS_GEN[name] || []).map(factQ).filter(Boolean);
+  encore.forEach(q => delete q.y);
+  const onAlbum = shuffle(all.filter(s => s.exact && s.T.length <= 40), R).sort((a, b) => a.f - b.f);
+  const usedAlb = new Set();
+  for (const s of onAlbum) {
+    if (encore.filter(q => q.alb).length >= 4) break;
+    if (usedAlb.has(s.era.t)) continue;
+    const near = albums.filter(a => a !== s.era).sort((a, b) => Math.abs(a.y - s.era.y) - Math.abs(b.y - s.era.y)).slice(0, 5);
+    const wrong = shuffle(near, R).slice(0, 3).map(a => a.t);
+    if (wrong.length < 3) continue;
+    usedAlb.add(s.era.t);
+    const t = `„${s.T}“`, te = `“${s.T}”`, tf = `« ${s.T} »`, ts = `«${s.T}»`;
+    encore.push({ k: 'fact', alb: true, s, o: [s.era.t, ...wrong],
+      q: { de: `Auf welchem Album ist ${t}?`, en: `Which album is ${te} on?`, fr: `Sur quel album se trouve ${tf} ?`, es: `¿En qué álbum está ${ts}?`, nb: `Hvilket album er «${s.T}» på?` } });
+  }
+  for (const a of shuffle(albums.filter(a => onAlbum.some(s => s.era === a)), R)) {
+    if (encore.filter(q => q.aly).length >= 3) break;
+    const s = onAlbum.find(x => x.era === a);
+    // falsche Jahre: nah dran, aber kein Jahr, in dem ein anderes Album erschien (sonst wäre es verwirrend)
+    const taken = new Set(albums.map(x => x.y));
+    const wrong = shuffle([-3, -2, -1, 1, 2, 3].map(d => a.y + d).filter(y => !taken.has(y) && y <= 2026), R).slice(0, 3);
+    if (wrong.length < 3) continue;
+    const t = `„${a.t}“`, te = `“${a.t}”`, tf = `« ${a.t} »`, ts = `«${a.t}»`;
+    encore.push({ k: 'fact', aly: true, s, o: [String(a.y), ...wrong.map(String)],
+      q: { de: `In welchem Jahr erschien das Album ${t}?`, en: `In which year was the album ${te} released?`, fr: `En quelle année est sorti l’album ${tf} ?`, es: `¿En qué año salió el álbum ${ts}?`, nb: `Hvilket år kom albumet «${a.t}»?` } });
+  }
+  if (encore.length >= 6) stations.push({ y: [albums[0].y, albums[albums.length - 1].y], al: [], encore: true, qs: encore });
+  else L.push(`  ⚠️ ${name}: nur ${encore.length} Fragen für die Zugabe – keine Zugabe`);
   // Cover des (ersten) Albums jeder Ära – Deezer-Suche nach Album beim selben Interpreten
   for (const st of stations) {
-    for (const al of st.al) {   // erstes Album der Ära, das es beim Star selbst gibt (Gemeinschaftsalben laufen oft unter dem anderen)
+    for (const al of st.al || []) {   // erstes Album der Ära, das es beim Star selbst gibt (Gemeinschaftsalben laufen oft unter dem anderen)
       const want = albumKey(al);
       const res = (await dz('/search/album?q=' + encodeURIComponent(`${name} ${al}`) + '&limit=25'))?.data || [];
       const hit = res.find(r => r.artist?.id === all.aid && albumKey(r.title) === want);
@@ -450,7 +485,7 @@ async function buildArtist(name) {
   for (const name of STARS) {
     const a = await buildArtist(name);
     const pr = Object.fromEntries(Object.entries(PROFILES[name]).filter(([k]) => k !== 'albums'));   // Herkunft, Namen, Fans für den Kopf der Tour
-    artistsOut.push({ id: a.id, A: a.A, pr, ...(a.pic ? { p: a.pic } : {}), c: a.c, ...(a.c0 ? { c0: a.c0 } : {}), st: a.stations.map(st => ({ y: st.y, al: st.al, ay: st.ay, ...(st.ac ? { ac: st.ac } : {}), q: st.qs.map(encode) })) });
+    artistsOut.push({ id: a.id, A: a.A, pr, ...(a.pic ? { p: a.pic } : {}), c: a.c, ...(a.c0 ? { c0: a.c0 } : {}), st: a.stations.map(st => ({ y: st.y, al: st.al, ay: st.ay, ...(st.encore ? { en: 1 } : {}), ...(st.ac ? { ac: st.ac } : {}), q: st.qs.map(encode) })) });
     L.push(`--- ${name}: ${a.songs} Songs (davon ${a.dzSongs} von Deezer ergänzt) · ${a.stations.length} Stationen`);
     a.stations.forEach((st, i) => {
       const kinds = st.qs.reduce((m, q) => (m[q.k] = (m[q.k] || 0) + 1, m), {});
@@ -481,7 +516,7 @@ async function buildArtist(name) {
   }
   for (const a of artistsOut) a.st.forEach((st, i) => {
     const k = new Set(st.q.map(q => q.k));
-    if (st.q.length < 6 || k.size < 2) problems.push(`Künstler ${a.A} / Station ${i + 1}: nur ${st.q.length} Aufgaben (${[...k].join(', ')})`);
+    if (st.q.length < 6 || (k.size < 2 && !st.en)) problems.push(`Künstler ${a.A} / Station ${i + 1}: nur ${st.q.length} Aufgaben (${[...k].join(', ')})`);
   });
   const head = [`On Tour – Datenpaket ${out.built} (Streams Stand ${HOM.streamsAt})`,
     `Songs im Pool: ${tracks.length} (davon ${addedDe} deutsche aus Gold Record dazu) · im Paket: ${songs.length} · Künstler: ${artistsOut.length} · Datei ${(Buffer.byteLength(json) / 1024).toFixed(0)} KB`, ''];

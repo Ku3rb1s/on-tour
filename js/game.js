@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.1.0', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.1.1', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd7';
+const DATA_V = 'd8';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -77,6 +77,9 @@ function tourOf(id = 'main') {
     id, kind: 'artist', key: 'astars', artist: a,
     // jede Station ist eine Ära der Karriere: ein Album (oder mehrere, wenn eines allein zu wenige Songs hat), mit seinem Cover
     stations: a.st.map((st, i) => { const L = st.al || [];
+      // Zugabe: letzte Station mit allgemeinen Fragen zum Star und Album-Quiz
+      if (st.en) return { sid: `${a.id}.${i + 1}`, encore: true, icon: '🎤', img: artistPic(a), name: () => tx('Zugabe'), era: tx('Zugabe'),
+        label: () => `${a.A} · ${tx('Zugabe')}`, sub: () => tx('Wissen & Album-Quiz'), y: st.y, pool: () => st.q };
       // Name der Ära: ein Album · zwei Alben „A · B“ · mehr „erstes bis letztes“
       const al = () => !L.length ? tx('Station {n}', { n: i + 1 }) : L.length <= 2 ? L.join(' · ') : tx('{a} bis {b}', { a: L[0], b: L[L.length - 1] }); return {
       sid: `${a.id}.${i + 1}`, icon: '💿', ac: st.ac, img: st.ac ? dzCover(st.ac, 250) : stImg(st), name: al, get era() { return al(); }, albums: L.map((t, k) => `${t} (${st.ay?.[k] ?? ''})`),
@@ -324,7 +327,7 @@ function discHtml(s) {
     <div class="tap-hint">${tx('Tippen: nochmal von vorn')}</div>`;
 }
 const optBtn = (v, k, main, small = '') => `<button class="opt" data-v="${esc(v)}"><kbd>${k + 1}</kbd><span><b>${esc(main)}</b>${small ? `<small>${esc(small)}</small>` : ''}</span></button>`;
-function renderQ() {
+function renderQ(quiet = false) {   // quiet: nur neu zeichnen (Sprachwechsel), Musik läuft weiter
   const q = curQ(); if (!q) return;
   G.answered = false;
   const [kicker, title] = kindText(q);
@@ -371,7 +374,7 @@ function renderQ() {
   }
   fitClaim();
   renderPlaying();
-  playSong(s);
+  if (!quiet) playSong(s);
   // nächste Aufgabe schon laden
   const nq = G.qs[G.n + 1]; if (nq) preloadNext(mainSong(nq));
   G.qStart = performance.now();
@@ -403,6 +406,15 @@ function answer(v) {
   const s = mainSong(q), right = rightOf(q), ok = v != null && String(v) === right;
   if (ok) G.right++;
   G.log.push({ q, ok, said: v });
+  paintAnswer(q, v, ok);
+  $('#game').classList.remove('ok', 'bad'); void $('#game').offsetWidth; $('#game').classList.add(ok ? 'ok' : 'bad');
+  sound(ok ? 'ok' : 'miss');
+  if (!ok && opt.vib && navigator.vibrate) navigator.vibrate(90);
+  $('#qNext').focus({ preventScroll: true });
+}
+// Auflösung zeigen – auch nach einem Sprachwechsel (dann ohne Ton und Wertung)
+function paintAnswer(q, v, ok) {
+  const s = mainSong(q), right = rightOf(q);
   // Knöpfe einfärben: richtige Antwort grün, falsch gewählte rot
   for (const b of $$('#qOpts .opt')) {
     b.disabled = true;
@@ -417,9 +429,6 @@ function answer(v) {
   else if (q.k === 'who' || q.k === 'claim' || q.k === 'feat') { const t = $('#qBody .song .t'), a = $('#qBody .song .a'); if (t) t.textContent = s.T; if (a) a.textContent = s.a0; }
   const fact = q.k === 'fact' ? `<b>${esc(inLang(q.o[0]))}</b>` : q.k === 'claim' ? `<b>${esc(s.T)}</b> ${factHtml(q.c, s)}` : q.k === 'old' ? '' : `<b>${esc(s.T)}</b> · ${esc(s.a0)}${yTxt(s)}`;
   $('#qFact').innerHTML = `<span class="${ok ? 'good' : 'wrong'}">${ok ? '✓ ' + tx('Richtig!') : v == null ? '⏱ ' + tx('Zeit abgelaufen') : '✗ ' + tx('Daneben!')}</span> ${fact}`;
-  $('#game').classList.remove('ok', 'bad'); void $('#game').offsetWidth; $('#game').classList.add(ok ? 'ok' : 'bad');
-  sound(ok ? 'ok' : 'miss');
-  if (!ok && opt.vib && navigator.vibrate) navigator.vibrate(90);
   renderDots();
   const last = G.n >= G.qs.length - 1;
   $('#qNextLbl').textContent = last ? tx('Zum Ergebnis') : tx('Weiter');
@@ -455,7 +464,8 @@ function endStation() {
   $('#endSub').textContent = stars === 3 ? (fans ? tx('Alle richtig – das freut die {f}!', { f: fans }) : tx('Alle richtig – drei Sterne!')) : stars === 2 ? tx('Noch 1 richtig mehr für drei Sterne') : stars === 1 ? tx('Für zwei Sterne brauchst du 5 richtige') : tx('Ab 3 richtigen gibt es den ersten Stern');
   const finished = !next && stars && G.before === 0;
   let note = '';
-  if (opened && next) note = '🎉 ' + (next.era ? tx('Neue Ära offen: {s}', { s: `${next.era} (${next.sub()})` }) : tx('Neue Station offen: {s}', { s: `${next.icon} ${next.label()}` }));
+  if (opened && next?.encore) note = '🎤 ' + tx('Die Zugabe ist offen: Wissen & Album-Quiz zu {a}', { a: t.artist.A });
+  else if (opened && next) note = '🎉 ' + (next.era ? tx('Neue Ära offen: {s}', { s: `${next.era} (${next.sub()})` }) : tx('Neue Station offen: {s}', { s: `${next.icon} ${next.label()}` }));
   else if (finished) note = '🏁 ' + (t.kind === 'artist' ? tx('Du hast die Tour von {a} geschafft!', { a: t.artist.A }) : tx('Du hast die ganze Tour geschafft – von Memphis bis heute!'));
   else if (!stars && G.before === 0) note = tx('Versuch es nochmal – die Songs bleiben dieselben, nur die Aufgaben wechseln.');
   $('#endNote').textContent = note; $('#endNote').classList.toggle('hidden', !note);
@@ -699,9 +709,10 @@ function openStation(tid, i) {
   $('#stHero').innerHTML = `${st.img ? `<img class="st-img" src="${st.img}" alt="">` : `<span class="st-ic">${st.icon}</span>`}<b>${esc(t.kind === 'artist' ? st.name() : st.label())}</b><span>${esc(t.kind === 'artist' ? `${t.artist.A} · ${st.sub()}` : st.sub())}</span>
     <span class="st-stars">${[0, 1, 2].map(k => `<i class="${k < n ? 'on' : ''}">★</i>`).join('')}</span>`;
   $('#stInfo').innerHTML = [
-    ['🎧', tx('6 Aufgaben mit Musik'), t.kind === 'artist' ? tx('Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre') : tx('Erkennen, Älter oder neuer, Hit or Miss und Gold-Fragen')],
+    ['🎧', tx('6 Aufgaben mit Musik'), st.encore ? tx('Wissensfragen – dazu laufen Songs des Stars') : t.kind === 'artist' ? tx('Welcher Song?, Was kam zuerst?, Mit wem?, Streams und Jahre') : tx('Erkennen, Älter oder neuer, Hit or Miss und Gold-Fragen')],
     ['⭐', tx('Sterne'), tx('1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6')],
-    st.albums ? ['💿', st.albums.length > 1 ? tx('Alben dieser Ära') : tx('Album dieser Ära'), st.albums.join(' · ')]
+    st.encore ? ['🎤', tx('Zugabe'), tx('Allgemeine Fragen zu {a} und ein Album-Quiz: Auf welchem Album ist der Song? Wann erschien das Album?', { a: t.artist.A })]
+      : st.albums ? ['💿', st.albums.length > 1 ? tx('Alben dieser Ära') : tx('Album dieser Ära'), st.albums.join(' · ')]
       : ['📅', tx('Songs aus der Zeit'), yrs([st.y[0], Math.min(st.y[1], new Date().getFullYear())])],
   ].map(([ic, tt, sub]) => `<div class="cell"><span class="cell-ic ach-ic">${ic}</span><span class="grow">${tt}<span class="sub">${esc(sub)}</span></span></div>`).join('');
   const prev = t.stations[i - 1];
@@ -759,7 +770,7 @@ function goMap() {
   stopAudio();
   if (G && !G.ended) G.ended = true;
   const idx = G?.idx;
-  if (G) view = G.tid;   // zurück zur Karte der Tour, in der gespielt wurde
+  if (G) { view = G.tid; LS.set('view', view); }   // zurück zur Karte der Tour, in der gespielt wurde (bleibt nach dem Neuladen)
   G = null;
   show('home');
   renderHome();
@@ -887,9 +898,10 @@ self.liveLang = () => {
   if (sheet.open) { renderSettings(); goPage($('#sheetSettings .page.active')?.dataset.page || 'main'); }
   if (stSheet.open && sheetAt) openStation(...sheetAt);
   if (G && !$('#game').classList.contains('hidden')) {
+    // Aufgabe in der neuen Sprache neu zeichnen – ohne den Song neu zu starten; war schon geantwortet, die Auflösung wieder zeigen
     const was = G.answered, log = G.log[G.n];
-    if (!was) renderQ();
-    else { const [k, t] = kindText(curQ()); $('#qKind').textContent = k + ' · ' + tx('Aufgabe {n} von {m}', { n: G.n + 1, m: G.qs.length }); $('#qTitle').textContent = t; $('#qNextLbl').textContent = G.n >= G.qs.length - 1 ? tx('Zum Ergebnis') : tx('Weiter'); void log; }
+    renderQ(true);
+    if (was && log) { G.answered = true; paintAnswer(log.q, log.said, log.ok); }
     $('#gStation').textContent = `${G.st.icon} ${G.st.label()}`;
   }
   if (G && !$('#end').classList.contains('hidden')) renderEndList();

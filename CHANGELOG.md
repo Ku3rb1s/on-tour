@@ -1,5 +1,11 @@
 # Neuerungen
 
+## 1.1.1 – 08.11.2026
+- Neu in jeder Künstler-Tour: die **Zugabe** – allgemeine Fragen zum Star und ein Album-Quiz (Auf welchem Album ist der Song? Wann erschien das Album?)
+- Behoben: Nach einem Sprachwechsel mitten in einer Aufgabe blieben Antworten und Auflösung in der alten Sprache
+- Behoben: Nach einer Künstler-Station merkt sich das Spiel jetzt auch nach dem Neuladen, welche Tour offen war
+- Songs ohne Hörprobe bei Deezer werden jetzt automatisch aussortiert
+
 ## 1.1.0 – 08.11.2026
 - Künstler-Touren persönlicher: Die Stationen sind jetzt die Ären der Karriere – benannt nach den Alben, mit Album-Cover (z. B. Linkin Park: Hybrid Theory, Meteora, Minutes to Midnight …)
 - Jede Tour hat einen eigenen Kopf: Foto, Herkunft, Band-Mitglieder oder bürgerlicher Name, Spitzname und Fans – nur Belegtes
