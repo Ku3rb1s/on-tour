@@ -1,5 +1,10 @@
 # Neuerungen
 
+## 1.2.1 – 08.11.2026
+- Künstler-Touren: Wissensfragen ausgemistet – 45 Fragen für Superfans entfernt (Studiomusiker, Produzenten, Regisseure, Aufnahmeorte, Plattenfirmen, Chart-Wochen, Geburtsjahre)
+- Dafür 13 neue, bekanntere Fragen, u. a. zu Queen, Linkin Park, Coldplay, David Guetta, Avicii, Bruno Mars und Ed Sheeran
+- Zugabe: keine Fragen mehr nach dem Erscheinungsjahr von Alben; das Album-Quiz nimmt nur noch die bekanntesten Songs
+
 ## 1.2.0 – 08.11.2026
 - Drei Bonus-Stationen in der Haupt-Tour: 🇩🇪 Nur Deutsch (ab 20 ⭐), 💎 Milliarden-Club (ab 40 ⭐) und 🤝 Duette (ab 60 ⭐) – mit Songs aus allen Jahrzehnten
 - Ergebnis teilen: am Ende jeder Station, z. B. „On Tour 🎸 Memphis 1956 ★★☆ · 5 von 6“

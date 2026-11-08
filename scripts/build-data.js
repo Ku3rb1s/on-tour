@@ -458,7 +458,7 @@ async function buildArtist(name) {
   const onAlbum = shuffle(all.filter(s => s.exact && s.T.length <= 40), R).sort((a, b) => a.f - b.f);
   const usedAlb = new Set();
   for (const s of onAlbum) {
-    if (encore.filter(q => q.alb).length >= 4) break;
+    if (encore.filter(q => q.alb).length >= 3) break;
     if (usedAlb.has(s.era.t)) continue;
     const near = albums.filter(a => a !== s.era).sort((a, b) => Math.abs(a.y - s.era.y) - Math.abs(b.y - s.era.y)).slice(0, 5);
     const wrong = shuffle(near, R).slice(0, 3).map(a => a.t);
@@ -468,8 +468,10 @@ async function buildArtist(name) {
     encore.push({ k: 'fact', alb: true, s, o: [s.era.t, ...wrong],
       q: { de: `Auf welchem Album ist ${t}?`, en: `Which album is ${te} on?`, fr: `Sur quel album se trouve ${tf} ?`, es: `¿En qué álbum está ${ts}?`, nb: `Hvilket album er «${s.T}» på?` } });
   }
+  // Album-Jahre (±1–3 Jahre) sind Superfan-Wissen – abgeschaltet (ALBUM_YEARS = 0)
+  const ALBUM_YEARS = 0;
   for (const a of shuffle(albums.filter(a => onAlbum.some(s => s.era === a)), R)) {
-    if (encore.filter(q => q.aly).length >= 3) break;
+    if (encore.filter(q => q.aly).length >= ALBUM_YEARS) break;
     const s = onAlbum.find(x => x.era === a);
     // falsche Jahre: nah dran, aber kein Jahr, in dem ein anderes Album erschien (sonst wäre es verwirrend)
     const taken = new Set(albums.map(x => x.y));
