@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.2.4 – 08.11.2026
+- Behoben: Direkt nach dem Schließen eines Stationsfensters ging der nächste Tipp (z. B. auf die nächste Station) verloren – jetzt öffnet sie beim ersten Tipp
+
 ## 1.2.3 – 08.11.2026
 - Behoben: Ein Tipp auf eine Station öffnete sie manchmal erst beim zweiten oder dritten Mal (die Karte wurde beim Scrollen und beim Abgleich neu gezeichnet, während der Finger noch drauf war)
 
