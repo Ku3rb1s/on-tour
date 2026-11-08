@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.2.5', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.2.6', APP_DATE = '08.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd10';
+const DATA_V = 'd11';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -713,6 +713,8 @@ async function resetTour(t) {
   const msg = t.kind === 'artist' ? tx('Alle Sterne der Tour von {a} löschen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.', { a: name })
     : tx('Alle Sterne der Haupt-Tour löschen, auch die der Bonus-Stationen? Die Stationen sind danach wieder gesperrt, deine Erfolge bleiben.');
   if (!(await ask(msg, tx('Zurücksetzen'), true))) return;
+  // erst abgleichen: Sterne, die ein anderes Gerät gerade in anderen Touren geholt hat, sollen dabei nicht verloren gehen
+  if (Sync.status().connected) await Promise.race([Sync.syncNow().catch(() => {}), new Promise(r => setTimeout(r, 4000))]);
   const m = { ...(LS.get(t.key, {}) || {}) };
   for (const id of resetIds(t)) delete m[id];
   LS.set(t.key, m);

@@ -1,5 +1,10 @@
 # Neuerungen
 
+## 1.2.6 – 08.11.2026
+- Wissensfragen: Darf der passende Song nicht laufen (weil er unter den Antworten steht), läuft jetzt ein Klassiker des Stars statt eines brandneuen Songs – und nicht zu jeder Frage derselbe
+- Tour zurücksetzen: gleicht vorher ab, damit Sterne, die ein anderes Gerät gerade geholt hat, nicht verloren gehen
+- Fenster: Ein Doppeltipp auf „Fertig“ tippt nicht mehr versehentlich, was darunter liegt
+
 ## 1.2.5 – 08.11.2026
 - Behoben: Beim Drücken sprang eine Station auf der Karte nach rechts weg – ein Tipp auf ihre linke Hälfte kam dann nicht an. Jetzt wird sie beim Drücken nur etwas kleiner, wie alle Knöpfe
 

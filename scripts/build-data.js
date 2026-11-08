@@ -439,10 +439,17 @@ async function buildArtist(name) {
   // Wissensfragen: zu einzelnen Songs (facts-songs.js) in die Ära, in deren Jahre sie fallen; allgemeine zum Star (facts.js)
   // in die Zugabe. Dabei läuft der genannte Song – oder ein bekannter Song des Stars, der nicht unter den Antworten steht.
   const optTxt = o => typeof o === 'string' ? [o] : Object.values(o);
+  // Ersatzsong, wenn der genannte fehlt: ein Klassiker des Stars (meiste Streams – der Deezer-Rang bevorzugt brandneue
+  // Songs), und dabei abwechseln, damit nicht zu jeder Frage derselbe läuft
+  const fillUse = new Map();
   const factQ = fq => {
     const words = fq.o.flatMap(optTxt).map(x => HM.words(x));
     const safe = x => !words.some(w => w.includes(HM.words(x.T)));
-    const song = all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
+    const classics = all.filter(x => !x.dz && x.n && x.ak === k && safe(x)).sort((a, b) => b.n - a.n).slice(0, 6);
+    const fill = classics.sort((a, b) => (fillUse.get(a) || 0) - (fillUse.get(b) || 0) || b.n - a.n)[0]
+      || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
+    const song = all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || fill;
+    if (song === fill && fill) fillUse.set(fill, (fillUse.get(fill) || 0) + 1);
     if (!song) { L.push(`  ⚠️ ${name}: kein Song für „${fq.q.de}“`); return null; }
     if (song.tk !== HM.titleKey(fq.s)) L.push(`  ↪ ${name}: „${fq.s}“ nicht da – dazu läuft „${song.T}“`);
     return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y };
