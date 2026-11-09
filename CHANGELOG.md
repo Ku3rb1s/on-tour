@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.3.2 – 09.11.2026
+- Neues Spiel in der Jukebox: Piano Rain (Klavier lernen mit fallenden Noten) – im Spiele-Menü (Logo lange drücken) und im Abgleich
+
 ## 1.3.1 – 08.11.2026
 - Adventskalender leichter: bekanntere Songs, falsche Jahre weiter weg, bei „Älter oder neuer“ mindestens 10 Jahre Abstand, keine Frage doppelt im Kalender
 - Der erste Versuch eines Türchens ist für alle gleich, beim Wiederholen kommen neue Aufgaben aus dem Türchen (sonst kennt man alle Antworten)
