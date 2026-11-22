@@ -5,7 +5,7 @@
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
 const APP_VERSION = '1.3.4', APP_DATE = '22.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd16';
+const DATA_V = 'd17';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
