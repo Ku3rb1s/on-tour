@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.3.4 – 22.11.2026
+- Songdaten aktualisiert (neu: BTS – Come Over)
+
 ## 1.3.3 – 16.11.2026
 - Bestenliste: Rekorde aus Needle Drop werden jetzt auch von hier aus gemeldet (gemeinsame sync.js)
 
