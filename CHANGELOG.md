@@ -1,5 +1,12 @@
 # Neuerungen
 
+## 1.4.0 – 24.11.2026
+- **11 neue Künstler-Touren**: Kanye West, XXXTENTACION, 2Pac, Snoop Dogg, Nelly, A$AP Rocky, Pop Smoke, Calvin Harris, Adele, Harry Styles und Marshmello – jeweils durch alle Album-Ären, mit Zugabe
+- Über 80 neue Wissensfragen, jede gegen Wikipedia geprüft (Herkunft, Namen, Alben, Samples, Duette, Filme)
+- Snoop Doggs frühe Hits als „Snoop Doggy Dogg“ gehören jetzt zu seiner Tour
+- Behoben: Nach dem Antworten stand manchmal ein falsches Jahr unter einem Song (Jahr einer Neuauflage) – jetzt nur noch geprüfte Jahre
+- Bei „Mit wem?“ tauchen keine Soundtracks und keine anderen Namen des Stars selbst (z. B. „Ye“ bei Kanye West) mehr als Antwort auf
+
 ## 1.3.6 – 24.11.2026
 - Läuft jetzt unter der eigenen Adresse jukeboxquiz.de (alte Links leiten automatisch weiter)
 

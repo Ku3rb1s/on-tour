@@ -123,4 +123,42 @@ module.exports = {
   'Juice WRLD': [
     Q(2018, 'Legends', L('Welchen beiden verstorbenen Rappern ist „Legends“ gewidmet?', 'Which two late rappers is “Legends” dedicated to?', 'À quels deux rappeurs disparus « Legends » est-il dédié ?', '¿A qué dos raperos fallecidos está dedicada «Legends»?', 'Hvilke to avdøde rappere er «Legends» tilegnet?'), ['XXXTentacion & Lil Peep', '2Pac & The Notorious B.I.G.', 'Mac Miller & Nipsey Hussle', 'Pop Smoke & King Von']),
   ],
+  // ---- dazu am 24.11.2026 – geprüft gegen die Wikipedia-Artikel der Songs bzw. des Stars (Abruf 24.11.2026) ----
+  'Kanye West': [
+    Q(2007, 'Stronger', L('Welches französische Duo wird in „Stronger“ gesampelt?', 'Which French duo is sampled on “Stronger”?', 'Quel duo français est samplé dans « Stronger » ?', '¿Qué dúo francés se samplea en «Stronger»?', 'Hvilken fransk duo er samplet på «Stronger»?'),
+      ['Daft Punk', 'Justice', 'Air', 'Cassius']),
+    Q(2005, 'Gold Digger', L('Welcher Schauspieler singt in „Gold Digger“ mit?', 'Which actor sings on “Gold Digger”?', 'Quel acteur chante sur « Gold Digger » ?', '¿Qué actor canta en «Gold Digger»?', 'Hvilken skuespiller synger på «Gold Digger»?'),
+      ['Jamie Foxx', 'Will Smith', 'Eddie Murphy', 'Denzel Washington']),
+    Q(2005, 'Gold Digger', L('Welche Soul-Legende wird in „Gold Digger“ gesampelt?', 'Which soul legend is sampled on “Gold Digger”?', 'Quelle légende de la soul est samplée dans « Gold Digger » ?', '¿Qué leyenda del soul se samplea en «Gold Digger»?', 'Hvilken soullegende er samplet på «Gold Digger»?'),
+      ['Ray Charles', 'Stevie Wonder', 'Marvin Gaye', 'James Brown']),
+  ],
+  '2Pac': [
+    Q(1995, 'California Love', L('Welcher Produzent rappt in „California Love“ mit 2Pac?', 'Which producer raps with 2Pac on “California Love”?', 'Quel producteur rappe avec 2Pac sur « California Love » ?', '¿Qué productor rapea con 2Pac en «California Love»?', 'Hvilken produsent rapper med 2Pac på «California Love»?'),
+      ['Dr. Dre', 'Snoop Dogg', 'Ice Cube', 'Eazy-E']),
+    Q(1995, 'California Love', L('Von welchem Film ist das Video zu „California Love“ inspiriert?', 'Which film inspired the “California Love” video?', 'De quel film le clip de « California Love » s’inspire-t-il ?', '¿En qué película se inspira el vídeo de «California Love»?', 'Hvilken film inspirerte videoen til «California Love»?'),
+      [L('Mad Max – Jenseits der Donnerkuppel', 'Mad Max Beyond Thunderdome', 'Mad Max : Au-delà du dôme du tonnerre', 'Mad Max: más allá de la cúpula del trueno', 'Mad Max: Beyond Thunderdome'), 'Terminator 2', 'Blade Runner',
+        L('Zurück in die Zukunft', 'Back to the Future', 'Retour vers le futur', 'Regreso al futuro', 'Tilbake til fremtiden')]),
+    Q(1998, 'Changes', L('Welchen Song von Bruce Hornsby sampelt 2Pacs „Changes“?', 'Which Bruce Hornsby song does 2Pac’s “Changes” sample?', 'Quelle chanson de Bruce Hornsby est samplée dans « Changes » de 2Pac ?', '¿Qué canción de Bruce Hornsby samplea «Changes» de 2Pac?', 'Hvilken Bruce Hornsby-sang er samplet på 2Pacs «Changes»?'),
+      ['The Way It Is', 'Mandolin Rain', 'Every Little Kiss', 'The Valley Road']),
+  ],
+  'Snoop Dogg': [
+    Q(2004, "Drop It Like It's Hot", L('Wer singt in „Drop It Like It’s Hot“ mit Snoop Dogg?', 'Who features with Snoop Dogg on “Drop It Like It’s Hot”?', 'Qui chante avec Snoop Dogg sur « Drop It Like It’s Hot » ?', '¿Quién canta con Snoop Dogg en «Drop It Like It’s Hot»?', 'Hvem er med Snoop Dogg på «Drop It Like It’s Hot»?'),
+      ['Pharrell Williams', 'Justin Timberlake', 'Usher', 'Nelly']),
+  ],
+  'Nelly': [
+    Q(2002, 'Dilemma', L('Wer singt in „Dilemma“ mit Nelly?', 'Who sings with Nelly on “Dilemma”?', 'Qui chante avec Nelly sur « Dilemma » ?', '¿Quién canta con Nelly en «Dilemma»?', 'Hvem synger med Nelly på «Dilemma»?'),
+      ['Kelly Rowland', 'Beyoncé', 'Ashanti', 'Ciara']),
+  ],
+  'Pop Smoke': [
+    Q(2019, 'Welcome To The Party', L('Welche Rapperin ist im Remix von „Welcome to the Party“ zu hören?', 'Which female rapper features on the “Welcome to the Party” remix?', 'Quelle rappeuse entend-on sur le remix de « Welcome to the Party » ?', '¿Qué rapera se oye en el remix de «Welcome to the Party»?', 'Hvilken kvinnelig rapper er med på remiksen av «Welcome to the Party»?'),
+      ['Nicki Minaj', 'Cardi B', 'Megan Thee Stallion', 'Doja Cat']),
+    Q(2020, 'For The Night', L('Welche zwei Rapper sind in „For the Night“ zu hören?', 'Which two rappers feature on “For the Night”?', 'Quels deux rappeurs entend-on sur « For the Night » ?', '¿Qué dos raperos se oyen en «For the Night»?', 'Hvilke to rappere er med på «For the Night»?'),
+      ['DaBaby & Lil Baby', 'Drake & Future', 'Travis Scott & Quavo', 'Lil Uzi Vert & Gunna']),
+  ],
+  'Calvin Harris': [
+    Q(2011, 'We Found Love', L('Welche Sängerin singt „We Found Love“, das Calvin Harris produzierte?', 'Which singer sings “We Found Love”, produced by Calvin Harris?', 'Quelle chanteuse interprète « We Found Love », produit par Calvin Harris ?', '¿Qué cantante interpreta «We Found Love», producida por Calvin Harris?', 'Hvilken sangerinne synger «We Found Love», produsert av Calvin Harris?'),
+      ['Rihanna', 'Ellie Goulding', 'Kesha', 'Sia']),
+    Q(2016, 'This Is What You Came For', L('Welche Sängerin schrieb „This Is What You Came For“ mit?', 'Which singer co-wrote “This Is What You Came For”?', 'Quelle chanteuse a coécrit « This Is What You Came For » ?', '¿Qué cantante coescribió «This Is What You Came For»?', 'Hvilken sangerinne var med på å skrive «This Is What You Came For»?'),
+      ['Taylor Swift', 'Katy Perry', 'Sia', 'Lady Gaga']),
+  ],
 };

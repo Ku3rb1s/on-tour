@@ -308,7 +308,8 @@ function buildTour(name, opt, list = STATIONS) {
    Ohne Netz: node scripts/build-data.js --offline (nimmt nur den Zwischenspeicher). */
 const STARS = ['The Beatles', 'Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Linkin Park', 'Coldplay', 'Beyoncé', 'Rihanna', 'Shakira',
   'Lady Gaga', 'David Guetta', 'Avicii', 'Kygo', 'Bruno Mars', 'Ed Sheeran', 'Taylor Swift', 'The Weeknd', 'Drake', 'Billie Eilish', 'Bad Bunny',
-  '50 Cent', 'Justin Bieber', 'Travis Scott', 'Post Malone', 'Juice WRLD'];
+  '50 Cent', 'Justin Bieber', 'Travis Scott', 'Post Malone', 'Juice WRLD',
+  'Kanye West', 'XXXTENTACION', '2Pac', 'Snoop Dogg', 'Nelly', 'A$AP Rocky', 'Pop Smoke', 'Calvin Harris', 'Adele', 'Harry Styles', 'Marshmello'];
 // Wissensfragen je Star (von Hand, recherchiert und geprüft): zu den Stars (facts.js) und zu einzelnen Songs (facts-songs.js)
 const FACTS_GEN = require('./facts.js'), FACTS_SONG = require('./facts-songs.js');
 const WANT_SONGS = 48, OFFLINE = process.argv.includes('--offline');
@@ -335,9 +336,16 @@ async function dz(p) {
 const NOT_ORIGINAL = /remaster|best of|greatest|hits|collection|anniversary|essential|anthology|gold|live|deluxe|edition|years|platinum/i;
 const EXTRA_PART = /live|remix|acoustic|instrumental|karaoke|demo|version|edit\b|sped up|slowed|mix\)/i;
 const NOT_A_SONG = /\b(intro|interlude|outro|skit|prelude|reprise)\b/i;   // Zwischenstücke von Alben – keine echten Songs
+// früherer Künstlername (gleicher Star): Snoop Dogg hieß bis Mitte der 90er „Snoop Doggy Dogg“ (Gin and Juice, What's My Name?)
+const STAR_ALIAS = { snoopdogg: ['snoopdoggydogg'] };
+// weitere Namen desselben Stars – dürfen bei „Mit wem?“ nicht als (falsche) Antwort auftauchen (Kanye West heißt heute „Ye“)
+const STAR_SELF = { kanyewest: ['ye', 'kanye'], snoopdogg: ['snoopdoggydogg', 'snooplion'] };
+const selfKey = (k, nk) => nk === k || (STAR_ALIAS[k] || []).includes(nk) || (STAR_SELF[k] || []).includes(nk);
+// Titel, die im Spiel nicht als Antwort stehen sollen: rassistische Beleidigung ausgeschrieben, Gewalt an Schulen
+const BAD_TITLE = /\bnigga|\bniggaz|school shooter/i;
 async function songsOfStar(name) {
-  const k = HM.key(name);
-  const list = D.tracks.filter(s => s.T && !XMAS.test(s.t) && !NOT_A_SONG.test(s.t) && (s.ak === k || s.parts.some(p => HM.key(p) === k)));
+  const k = HM.key(name), keys = new Set([k, ...(STAR_ALIAS[k] || [])]);
+  const list = D.tracks.filter(s => s.T && !XMAS.test(s.t) && !NOT_A_SONG.test(s.t) && !BAD_TITLE.test(s.t) && !/soundtrack|motion picture/i.test(s.A) && (keys.has(s.ak) || s.parts.some(p => keys.has(HM.key(p)))));
   const firstYear = Math.min(...list.filter(s => s.q >= 1).map(s => s.y));
   // gleichnamige Interpreten (es gibt mehrere „Queen“): der mit den meisten Fans – von dort auch das Profilbild
   const found = ((await dz('/search/artist?q=' + encodeURIComponent(name) + '&limit=10'))?.data || []).filter(a => HM.key(a.name) === k).sort((a, b) => b.nb_fan - a.nb_fan)[0];
@@ -349,7 +357,8 @@ async function songsOfStar(name) {
       if (list.length >= WANT_SONGS) break;
       const extra = String(t.title).replace(/^[^([\-–—]*/, '');
       const T = HM.cleanTitle(t.title), tk = HM.titleKey(t.title);
-      if (!T || T.length > 40 || XMAS.test(t.title) || EXTRA_PART.test(extra) || NOT_A_SONG.test(t.title) || !t.preview || t.artist.id !== found.id) continue;   // nur Songs, bei denen der Star Hauptinterpret ist
+      // „r - Cali“ würde beim Bereinigen zu „r“ – so ein Rest ist kein erkennbarer Titel
+      if (!T || T.length > 40 || (T.length <= 2 && /\s[-–—]\s/.test(t.title)) || XMAS.test(t.title) || BAD_TITLE.test(t.title) || EXTRA_PART.test(extra) || NOT_A_SONG.test(t.title) || !t.preview || t.artist.id !== found.id) continue;   // nur Songs, bei denen der Star Hauptinterpret ist
       if (list.some(s => s.tk === tk || HM.words(s.T).includes(HM.words(T)) || HM.words(T).includes(HM.words(s.T)))) continue;
       const alb = await dz('/album/' + t.album.id);
       let y = +String(alb?.release_date || '').slice(0, 4) || 0;
@@ -369,7 +378,7 @@ function guestsOf(s, k) {
   const out = [];
   for (const n of names.map(x => String(x).trim()).filter(Boolean)) {
     const nk = HM.key(n);
-    if (nk === k || HM.related(n, [STAR_NAME.get(k)]) || out.some(o => HM.key(o) === nk)) continue;
+    if (!nk || selfKey(k, nk) || /soundtrack|motion picture|original cast/i.test(n) || HM.related(n, [STAR_NAME.get(k)]) || out.some(o => HM.key(o) === nk)) continue;
     out.push(n);
   }
   return out;
@@ -418,7 +427,7 @@ async function buildArtist(name) {
       feat: s => {
         const g = guestsOf(s, k); if (!g.length) return null;
         const pool = shuffle([...allGuests, ...(s.dz ? [] : falseArtists(s, 3, .6, R) || [])], R)   // … und bekannte Interpreten aus der Zeit
-          .filter(x => HM.key(x) !== k && !g.some(y => HM.key(y) === HM.key(x)) && !HM.related(x, g) && !HM.related(x, s.parts) && okFalseArtist(x, s));
+          .filter(x => HM.key(x) && !selfKey(k, HM.key(x)) && !g.some(y => HM.key(y) === HM.key(x)) && !HM.related(x, g) && !HM.related(x, s.parts) && okFalseArtist(x, s));
         const o = uniqBy(pool, HM.key).slice(0, 3);
         return o.length === 3 ? { k: 'feat', s, A: g[0], o } : null;
       },
@@ -545,7 +554,8 @@ async function buildArtist(name) {
 
   const built = new Date().toISOString().slice(0, 10);
   const songs = songsOut.map(s => {
-    const r = [s.i, s.T, s.A, s.y, s.c || '', s.c0 || 0, s.n || 0];
+    // Jahr nur, wenn geprüft (sonst stünde nach dem Antworten z. B. das Jahr einer Neuauflage da) – 0 = kein Jahr anzeigen
+    const r = [s.i, s.T, s.A, s.q >= 1 || s.ay ? s.y : 0, s.c || '', s.c0 || 0, s.n || 0];
     if ((s.a0 || s.A) !== s.A) r.push(s.a0);
     return r;
   });
