@@ -199,7 +199,7 @@ const Advent = (() => {
       if (on) x.fillText('★'.repeat(Math.min(3, s.stars[n])) + (s.stars[n] > 3 ? '+' : ''), px + cw / 2, py + 124);
     }
     x.fillStyle = 'rgba(255,255,255,.7)'; x.font = '700 38px Outfit, system-ui, sans-serif';
-    x.fillText('ku3rb1s.github.io/jukebox', W / 2, H - 70);
+    x.fillText('jukeboxquiz.de/jukebox', W / 2, H - 70);
     const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
     const file = new File([blob], `adventskalender-${s.Y}.png`, { type: 'image/png' });
     const text = s.best ? tx('Mein Adventskalender: {s} ⭐, {d} Tage Serie', { s: s.total, d: s.best }) : tx('Mein Adventskalender: {s} ⭐', { s: s.total });

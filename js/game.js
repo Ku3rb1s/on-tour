@@ -3,7 +3,7 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.3.5', APP_DATE = '24.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.3.6', APP_DATE = '24.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
 const DATA_V = 'd17';
 const $ = s => document.querySelector(s);
@@ -15,13 +15,13 @@ const THEMES = [['graphit', 'Graphit', '#3a4252', '#1f3a32'], ['ozean', 'Ozean',
   ['abend', 'Abend', '#7a2e1c', '#7d1f4a'], ['lila', 'Lila', '#4a22a0', '#8a1458'], ['oled', 'OLED', '#000', '#000']];
 const LOC = () => ({ de: 'de-DE', en: 'en-GB', fr: 'fr-FR', es: 'es-ES', nb: 'nb-NO' }[curLang] || 'de-DE');
 const fmtN = n => Math.round(n).toLocaleString(LOC());
-const SITE = 'https://ku3rb1s.github.io/on-tour/';
+const SITE = 'https://jukeboxquiz.de/on-tour/';
 // „Mehr davon in …“ am Ende einer Station (Feld game in js/stations.js)
 const GAME_LINKS = {
-  nd: ['Needle Drop', 'https://ku3rb1s.github.io/needle-drop/', 'Songs am ersten Ton erkennen'],
-  oon: ['Older or Newer', 'https://ku3rb1s.github.io/older-or-newer/', 'Älter oder neuer – Song für Song'],
-  hom: ['Hit or Miss', 'https://ku3rb1s.github.io/hit-or-miss/', 'Stimmt’s oder stimmt’s nicht?'],
-  gr: ['Gold Record', 'https://ku3rb1s.github.io/gold-record/', 'Interpreten und Jahre raten'],
+  nd: ['Needle Drop', 'https://jukeboxquiz.de/needle-drop/', 'Songs am ersten Ton erkennen'],
+  oon: ['Older or Newer', 'https://jukeboxquiz.de/older-or-newer/', 'Älter oder neuer – Song für Song'],
+  hom: ['Hit or Miss', 'https://jukeboxquiz.de/hit-or-miss/', 'Stimmt’s oder stimmt’s nicht?'],
+  gr: ['Gold Record', 'https://jukeboxquiz.de/gold-record/', 'Interpreten und Jahre raten'],
 };
 const KIND = {
   rec: ['Erkennen', 'Welcher Song läuft?'],
@@ -36,7 +36,7 @@ const KIND = {
 const inLang = o => typeof o === 'string' ? o : (o[curLang] || o.de);
 const KIND_NAMES = { rec: 'Erkennen', old: 'Älter oder neuer', claim: 'Hit or Miss', gold: 'Gold-Frage', feat: 'Mit wem?', fact: 'Wissen' };
 
-// Gespeichert wird mit „ot.“ vorne – alle Spiele teilen sich den Browser-Speicher von ku3rb1s.github.io
+// Gespeichert wird mit „ot.“ vorne – alle Spiele teilen sich den Browser-Speicher von jukeboxquiz.de
 const LS = {
   get(k, d) { try { const v = localStorage.getItem('ot.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem('ot.' + k, JSON.stringify(v)); } catch {} },
@@ -809,7 +809,7 @@ function shareText() {
   if (G.t.kind === 'advent') return `On Tour 🎄 ${tx('Adventskalender')} · ${G.st.label()}
 ${starTxt(Advent.starsFor(G.right, G.qs.length))} · ${tx('{n} von {m}', { n: G.right, m: G.qs.length })}
 ${row}
-https://ku3rb1s.github.io/jukebox/`;
+https://jukeboxquiz.de/jukebox/`;
   const where = G.t.kind === 'artist' ? `🎤 ${G.t.artist.A} · ${G.st.name()}` : `${G.st.icon} ${G.st.label()}`;
   return `On Tour ${where}
 ${starTxt(stars)} · ${tx('{n} von {m}', { n: G.right, m: G.qs.length })}

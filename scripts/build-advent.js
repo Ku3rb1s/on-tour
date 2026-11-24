@@ -188,7 +188,7 @@ async function mbYear(A, T) {
     const wait = mbLast + 1100 - Date.now(); if (wait > 0) await sleep(wait);
     mbLast = Date.now();
     try {
-      const r = await fetch('https://musicbrainz.org/ws/2/recording?fmt=json&limit=50&query=' + encodeURIComponent(q), { headers: { 'User-Agent': 'JukeboxAdventskalender/1.0 ( https://ku3rb1s.github.io/jukebox/ )' } });
+      const r = await fetch('https://musicbrainz.org/ws/2/recording?fmt=json&limit=50&query=' + encodeURIComponent(q), { headers: { 'User-Agent': 'JukeboxAdventskalender/1.0 ( https://jukeboxquiz.de/jukebox/ )' } });
       if (r.status === 503) { await sleep(3000); continue; }
       const j = await r.json();
       const ys = (j.recordings || []).filter(rec => rec.score >= 70 && HM.titleKey(rec.title) === HM.titleKey(T)
