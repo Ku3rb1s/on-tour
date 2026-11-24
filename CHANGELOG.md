@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.4.1 – 24.11.2026
+- Kleine Anpassungen an den Künstler-Touren
+
 ## 1.4.0 – 24.11.2026
 - **11 neue Künstler-Touren**: Kanye West, XXXTENTACION, 2Pac, Snoop Dogg, Nelly, A$AP Rocky, Pop Smoke, Calvin Harris, Adele, Harry Styles und Marshmello – jeweils durch alle Album-Ären, mit Zugabe
 - Über 80 neue Wissensfragen, jede gegen Wikipedia geprüft (Herkunft, Namen, Alben, Samples, Duette, Filme)

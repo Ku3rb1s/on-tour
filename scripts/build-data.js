@@ -306,7 +306,7 @@ function buildTour(name, opt, list = STATIONS) {
    Hat ein Star wenige Songs im Pool, ergänzt die Deezer-Top-Liste (Zwischenspeicher scripts/.cache/deezer-artists.json).
    Diese Songs haben kein geprüftes Jahr – sie kommen nur bei „Welcher Song?“ und „Mit wem?“ vor, nie bei Jahres-Fragen.
    Ohne Netz: node scripts/build-data.js --offline (nimmt nur den Zwischenspeicher). */
-const STARS = ['The Beatles', 'Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Linkin Park', 'Coldplay', 'Beyoncé', 'Rihanna', 'Shakira',
+const STARS = ['Queen', 'ABBA', 'Michael Jackson', 'Eminem', 'Linkin Park', 'Coldplay', 'Beyoncé', 'Rihanna', 'Shakira',
   'Lady Gaga', 'David Guetta', 'Avicii', 'Kygo', 'Bruno Mars', 'Ed Sheeran', 'Taylor Swift', 'The Weeknd', 'Drake', 'Billie Eilish', 'Bad Bunny',
   '50 Cent', 'Justin Bieber', 'Travis Scott', 'Post Malone', 'Juice WRLD',
   'Kanye West', 'XXXTENTACION', '2Pac', 'Snoop Dogg', 'Nelly', 'A$AP Rocky', 'Pop Smoke', 'Calvin Harris', 'Adele', 'Harry Styles', 'Marshmello'];
