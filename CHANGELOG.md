@@ -1,5 +1,9 @@
 # Neuerungen
 
+## 1.4.2 – 24.11.2026
+- „Mit wem?“: Das Cover ist jetzt verschwommen, bis geantwortet ist – auf Single-Covern stehen oft beide Namen und verrieten die Antwort
+- Keine „Mit wem?“-Aufgaben mehr, bei denen die Antwort schon im Songtitel steht
+
 ## 1.4.1 – 24.11.2026
 - Kleine Anpassungen an den Künstler-Touren
 

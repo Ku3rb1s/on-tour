@@ -426,6 +426,7 @@ async function buildArtist(name) {
       old: s => { if ((s.dz && !s.ay) || !yearOk(s)) return null; const b = shuffle(all.filter(x => (!x.dz || x.ay) && x !== s && orderOk(s, x, 2)), R)[0]; return b ? { k: 'old', a: s, b } : null; },
       feat: s => {
         const g = guestsOf(s, k); if (!g.length) return null;
+        if (g.some(x => HM.words(x).length >= 3 && HM.words(s.T).includes(HM.words(x)))) return null;   // Antwort stünde im Titel („THE SCOTTS“)
         const pool = shuffle([...allGuests, ...(s.dz ? [] : falseArtists(s, 3, .6, R) || [])], R)   // … und bekannte Interpreten aus der Zeit
           .filter(x => HM.key(x) && !selfKey(k, HM.key(x)) && !g.some(y => HM.key(y) === HM.key(x)) && !HM.related(x, g) && !HM.related(x, s.parts) && okFalseArtist(x, s));
         const o = uniqBy(pool, HM.key).slice(0, 3);

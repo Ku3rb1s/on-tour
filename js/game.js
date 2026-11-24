@@ -3,9 +3,9 @@
    gezogen aus 12 fest gebauten (data/tour.json, scripts/build-data.js): Erkennen (4 Titel), Älter oder neuer, Hit or Miss
    (Behauptung wie in Hit or Miss), Gold-Frage (Wer singt? / Aus welchem Jahr?). Keine Leben, nur Sterne:
    1 Stern ab 3 richtigen, 2 ab 5, 3 bei allen 6. Mit 1 Stern ist die nächste Station offen. Konzept: KONZEPT.md */
-const APP_VERSION = '1.4.1', APP_DATE = '24.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
+const APP_VERSION = '1.4.2', APP_DATE = '24.11.2026'; // bei jedem Update erhöhen + CHANGELOG.md ergänzen
 // Eigene Version für data/tour.json – nur erhöhen, wenn sich die Songdaten geändert haben (scripts/build-data.js)
-const DATA_V = 'd19';
+const DATA_V = 'd20';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 
@@ -369,7 +369,8 @@ function renderQ(quiet = false) {   // quiet: nur neu zeichnen (Sprachwechsel), 
     opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
   } else if (q.k === 'feat') {
     // Mit wem? – der Titel steht da, die Interpreten nicht (sonst stünde die Antwort schon da)
-    body.innerHTML = songCard(s, { aTxt: `${esc(G.t.artist.A)} &amp; <span class="qm">?</span>` });
+    // Cover verschwommen: auf Single-Covern stehen oft beide Namen (z. B. „Swedish House Mafia & The Weeknd“)
+    body.innerHTML = songCard(s, { blur: true, aTxt: `${esc(G.t.artist.A)} &amp; <span class="qm">?</span>` });
     opts.innerHTML = q.opts.map((a, k) => optBtn(a, k, a)).join('');
   } else if (q.k === 'fact') {
     // m: es läuft der Song aus der Frage – sonst ist er nur Begleitmusik („Dazu läuft“); ha: Interpret verrät die Antwort
