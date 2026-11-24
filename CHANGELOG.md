@@ -1,5 +1,9 @@
 # Neuerungen
 
+## 1.4.4 – 24.11.2026
+- Wissensfragen überarbeitet: Die richtige Antwort ist nicht mehr an ihrer Länge oder als einzige ohne Interpret zu erkennen
+- Fragen zu Ehen und Bandbesetzungen beziehen sich jetzt auf das Ereignis (z. B. „Wen heiratete Beyoncé 2008?“)
+
 ## 1.4.3 – 24.11.2026
 - Wissensfragen: Stehen Songs verschiedener Interpreten zur Auswahl, steht jetzt der Interpret dabei (z. B. „Dance Monkey – Tones and I“)
 - Die Begleitmusik zeigt kein Cover mehr, dessen Albumname unter den Antworten steht (z. B. „Starboy“)
