@@ -455,9 +455,12 @@ async function buildArtist(name) {
   const factQ = fq => {
     const words = fq.o.flatMap(optTxt).map(x => HM.words(x));
     const safe = x => !words.some(w => w.includes(HM.words(x.T)));
-    const classics = all.filter(x => !x.dz && x.n && x.ak === k && safe(x)).sort((a, b) => b.n - a.n).slice(0, 6);
+    // Albumname auf dem Cover steht unter den Antworten („Die For You“ hat das „Starboy“-Cover) – als Begleitmusik ungeeignet
+    const albOpt = x => { const a = HM.words(albumKey(x.alb || '')); return a.length >= 3 && words.some(w => w.length >= 3 && (w.includes(a) || a.includes(w))); };
+    const bgOk = x => safe(x) && !albOpt(x);
+    const classics = all.filter(x => !x.dz && x.n && x.ak === k && bgOk(x)).sort((a, b) => b.n - a.n).slice(0, 6);
     const fill = classics.sort((a, b) => (fillUse.get(a) || 0) - (fillUse.get(b) || 0) || b.n - a.n)[0]
-      || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
+      || all.filter(x => !x.dz && bgOk(x)).sort((a, b) => a.f - b.f)[0] || all.filter(x => !x.dz && safe(x)).sort((a, b) => a.f - b.f)[0];
     // Nennt die Frage einen Song („…“), läuft genau der – vom Star oder, wenn er von jemand anderem ist (z. B. „I Gotta
     // Feeling“), aus dem ganzen Pool. Aber nie, wenn Titel oder Interpret die Antwort verraten (dann ein Song des Stars).
     // Verrät der Interpret die Antwort (Gast David Bowie bei „Under Pressure“), läuft der Song trotzdem – das Spiel blendet
@@ -467,7 +470,7 @@ async function buildArtist(name) {
     const named = [...fq.q.de.matchAll(/„([^“]+)“/g)].map(m => HM.titleKey(m[1])).filter(Boolean);
     const mentioned = named.map(tk => all.find(x => x.tk === tk && safe(x))
       || D.tracks.filter(x => x.tk === tk && safe(x)).sort((a, b) => (b.n || 0) - (a.n || 0))[0]).find(Boolean);
-    const song = mentioned || all.find(x => x.tk === HM.titleKey(fq.s) && safe(x)) || fill;
+    const song = mentioned || all.find(x => x.tk === HM.titleKey(fq.s) && bgOk(x)) || fill;
     if (song === fill && fill) fillUse.set(fill, (fillUse.get(fill) || 0) + 1);
     if (!song) { L.push(`  ⚠️ ${name}: kein Song für „${fq.q.de}“`); return null; }
     if (named.length && !mentioned) L.push(`  ♪ ${name}: „${fq.q.de}“ – genannter Song geht nicht, dazu läuft „${song.T}“`);
@@ -475,7 +478,7 @@ async function buildArtist(name) {
     // m: der laufende Song ist der in der Frage genannte – sonst zeigt das Spiel „läuft im Hintergrund“
     // Cover verschwommen (bl), wenn es die Antwort zeigen kann: Interpret darauf, oder die Antwort ist ein Album des Stars
     const ha = artistLeak(song), albAns = hit(albums.map(a => a.t)) && optTxt(fq.o[0]).some(t => albums.some(a => HM.words(a.t) === HM.words(t)));
-    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y, ...(mentioned ? { m: 1 } : {}), ...(ha ? { ha: 1 } : {}), ...(ha || albAns ? { bl: 1 } : {}) };
+    return { k: 'fact', s: song, q: fq.q, o: fq.o, y: fq.y, ...(mentioned ? { m: 1 } : {}), ...(ha ? { ha: 1 } : {}), ...(ha || albAns || albOpt(song) ? { bl: 1 } : {}) };
   };
   for (const q of (FACTS_SONG[name] || []).map(factQ).filter(Boolean)) {
     const d = st => q.y < st.y[0] ? st.y[0] - q.y : q.y > st.y[1] ? q.y - st.y[1] : 0;

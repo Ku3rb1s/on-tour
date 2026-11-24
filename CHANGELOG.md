@@ -1,5 +1,9 @@
 # Neuerungen
 
+## 1.4.3 – 24.11.2026
+- Wissensfragen: Stehen Songs verschiedener Interpreten zur Auswahl, steht jetzt der Interpret dabei (z. B. „Dance Monkey – Tones and I“)
+- Die Begleitmusik zeigt kein Cover mehr, dessen Albumname unter den Antworten steht (z. B. „Starboy“)
+
 ## 1.4.2 – 24.11.2026
 - „Mit wem?“: Das Cover ist jetzt verschwommen, bis geantwortet ist – auf Single-Covern stehen oft beide Namen und verrieten die Antwort
 - Keine „Mit wem?“-Aufgaben mehr, bei denen die Antwort schon im Songtitel steht
