@@ -1,5 +1,8 @@
 # Neuerungen
 
+## 1.4.5 – 28.11.2026
+- Vorbereitung für die Jukebox-App fürs iPhone: Dort fällt „Als App installieren“ weg
+
 ## 1.4.4 – 24.11.2026
 - Wissensfragen überarbeitet: Die richtige Antwort ist nicht mehr an ihrer Länge oder als einzige ohne Interpret zu erkennen
 - Fragen zu Ehen und Bandbesetzungen beziehen sich jetzt auf das Ereignis (z. B. „Wen heiratete Beyoncé 2008?“)
